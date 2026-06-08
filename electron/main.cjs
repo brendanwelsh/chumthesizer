@@ -17,8 +17,10 @@ function createWindow() {
 
   const ses = win.webContents.session;
 
-  // approve HID for this local app
-  ses.setPermissionCheckHandler((_wc, permission) => permission === "hid");
+  // approve HID + MIDI for this local app
+  const allowed = (p) => p === "hid" || p === "midi" || p === "midiSysex";
+  ses.setPermissionCheckHandler((_wc, permission) => allowed(permission));
+  ses.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed(permission)));
   ses.setDevicePermissionHandler((details) => details.deviceType === "hid");
   ses.on("select-hid-device", (event, details, callback) => {
     event.preventDefault();

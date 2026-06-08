@@ -20,6 +20,11 @@ export interface KeyboardOpts {
   onTransport: () => void;
   /** -/= → previous/next synth preset */
   onPreset: (dir: number) => void;
+  /** note events (for optional MIDI out) */
+  onNoteOn: (id: string, note: number, pressure: number) => void;
+  onNoteOff: (id: string) => void;
+  /** Space → all notes off */
+  onPanic: () => void;
 }
 
 export function initKeyboard(o: KeyboardOpts): void {
@@ -36,6 +41,7 @@ export function initKeyboard(o: KeyboardOpts): void {
       const id = `kbd:${e.code}`;
       o.engine.playDegree(id, degree, 0.72);
       o.visualOn(id, degree / MAX_DEGREE, 0.72);
+      o.onNoteOn(id, o.engine.noteForDegree(degree), 0.72);
       return;
     }
 
@@ -54,7 +60,7 @@ export function initKeyboard(o: KeyboardOpts): void {
       case "Backquote": params.glide = !params.glide; o.refresh(); break;
       case "Minus": o.onPreset(-1); break;
       case "Equal": o.onPreset(1); break;
-      case "Space": e.preventDefault(); o.engine.releaseAll(); held.clear(); break;
+      case "Space": e.preventDefault(); o.onPanic(); held.clear(); break;
     }
   });
 
@@ -65,5 +71,6 @@ export function initKeyboard(o: KeyboardOpts): void {
     const id = `kbd:${e.code}`;
     o.engine.release(id);
     o.visualOff(id);
+    o.onNoteOff(id);
   });
 }

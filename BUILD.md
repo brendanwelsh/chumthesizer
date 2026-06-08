@@ -39,7 +39,11 @@ It's a groovebox: a melodic surface on top, a drum machine + step sequencer unde
 - **Presets:** 8 synth patches (Pluck, Warm Pad, Sub Bass, Bells, Lead, E-Piano, Stab, Dream
   Glide) in the **Preset** dropdown. **Patterns:** 6 starter grooves (Boom Bap, Four Floor,
   Trap, Breakbeat, House, Empty) in the beat bar.
-- **Controls bar:** preset, scale, root, octave, waveform, volume, brightness, reverb, delay, glide.
+- **Controls bar:** preset, scale (11, incl. Arabic/Hijaz), root, octave, **Timbre** (continuous
+  sine→tri→saw→square morph), volume, brightness, reverb, delay, glide, **MIDI Out**.
+- **MIDI out (optional):** tick **MIDI Out** and pick a port to also drive a DAW / external synth
+  (loopMIDI on Windows, IAC on macOS) — notes with pressure-as-velocity + channel aftertouch, on
+  MIDI ch.1. The internal synth keeps playing too (turn Volume down if you only want MIDI).
 - **It remembers:** your preset, settings, tempo, and beat are saved automatically and restored
   next launch.
 
@@ -73,6 +77,8 @@ src/
     sequencer.ts     16-step drum sequencer with a lookahead clock
     presets.ts       synth patches (Pluck, Pad, Bass, Bells, …)
     patterns.ts      starter drum grooves
+    wavetable.ts     continuous waveform-morph PeriodicWaves (timbre knob)
+    midi.ts          optional WebMIDI output (drive a DAW / external synth)
     engine.ts        master graph: compressor, reverb, delay, DJ filter, analyser, voices
   input/
     pad.ts           pointer events (mouse/touch/pen) → sink

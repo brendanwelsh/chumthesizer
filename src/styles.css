@@ -185,6 +185,8 @@ body.started .hint { opacity: 0; }
 }
 .ctl input[type="range"] { width: 120px; accent-color: var(--accent); }
 .ctl input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.midi-row { display: flex; gap: 8px; align-items: center; }
+.midi-row select { max-width: 160px; }
 .panic {
   margin-left: auto;
   align-self: flex-end;

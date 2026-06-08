@@ -12,7 +12,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["vite/client", "w3c-web-hid"]
+    "types": ["vite/client", "w3c-web-hid", "webmidi"]
   },
   "include": ["src"]
 }

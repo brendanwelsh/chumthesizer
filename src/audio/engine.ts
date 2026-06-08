@@ -118,6 +118,14 @@ export class Engine {
     return midiToFreq(degreeToMidi(SCALES[params.scaleIndex], this.baseMidi(), degree));
   }
 
+  /** MIDI note numbers for the same mapping, for the optional MIDI-out path. */
+  noteForX(x: number): number {
+    return degreeToMidi(SCALES[params.scaleIndex], this.baseMidi(), xToDegree(x, params.spread));
+  }
+  noteForDegree(degree: number): number {
+    return degreeToMidi(SCALES[params.scaleIndex], this.baseMidi(), degree);
+  }
+
   private newVoice(freq: number, y: number, pressure: number, pan: number): Voice {
     return new Voice(this.ctx, this.dry, freq, pressure, y, pan, this.vibrato);
   }

@@ -12,10 +12,12 @@ import { initControls } from "./ui/controls";
 import { initBeat } from "./ui/beat";
 import { connectTrackpad, restoreTrackpad } from "./input/trackpad";
 import { connectDial, restoreDial } from "./input/dial";
+import { MidiOut } from "./audio/midi";
 
 const engine = new Engine();
 const kit = new DrumKit(engine.ctx, engine.drumBus);
 const seq = new Sequencer(engine.ctx, kit);
+const midi = new MidiOut();
 const contacts = new Map<string, Contact>();
 
 // restore the last session (or fall back to the default preset + groove)
@@ -24,10 +26,12 @@ engine.applyParams();
 engine.setBrightness(params.brightness);
 
 const sink: SurfaceSink = {
-  start(c) { contacts.set(c.id, c); engine.playXY(c.id, c.x, c.y, c.pressure); },
-  move(c) { contacts.set(c.id, c); engine.updateXY(c.id, c.x, c.y, c.pressure); },
-  end(id) { contacts.delete(id); engine.release(id); },
+  start(c) { contacts.set(c.id, c); engine.playXY(c.id, c.x, c.y, c.pressure); midi.noteOn(c.id, engine.noteForX(c.x), c.pressure); },
+  move(c) { contacts.set(c.id, c); engine.updateXY(c.id, c.x, c.y, c.pressure); midi.aftertouch(c.pressure); },
+  end(id) { contacts.delete(id); engine.release(id); midi.noteOff(id); },
 };
+
+const panic = () => { engine.releaseAll(); midi.allOff(); };
 
 const canvas = document.getElementById("pad") as HTMLCanvasElement;
 initPad(canvas, sink);
@@ -54,7 +58,13 @@ initKeyboard({
   onPad: (i) => { void engine.resume(); beat.hit(i); },
   onTransport: transport,
   onPreset: cyclePreset,
+  onNoteOn: (id, note, pressure) => midi.noteOn(id, note, pressure),
+  onNoteOff: (id) => midi.noteOff(id),
+  onPanic: panic,
 });
+
+// ── MIDI-out controls (lazy: only asks for MIDI access when toggled on) ─────
+buildMidiUi();
 
 new Visualizer(canvas, engine.analyserNode, contacts).start();
 
@@ -127,6 +137,52 @@ function saveState(): void {
 }
 setInterval(saveState, 2500);
 window.addEventListener("beforeunload", saveState);
+
+function buildMidiUi(): void {
+  const controlsEl = document.getElementById("controls");
+  if (!controlsEl) return;
+
+  const group = document.createElement("label");
+  group.className = "ctl";
+  const span = document.createElement("span");
+  span.textContent = "MIDI Out";
+  const row = document.createElement("div");
+  row.className = "midi-row";
+  const toggle = document.createElement("input");
+  toggle.type = "checkbox";
+  const select = document.createElement("select");
+  select.disabled = true;
+  row.append(toggle, select);
+  group.append(span, row);
+  controlsEl.insertBefore(group, controlsEl.querySelector(".panic"));
+
+  const populate = (outs: MIDIOutput[]) => {
+    select.innerHTML = "";
+    for (const o of outs) select.append(new Option(o.name || o.id, o.id));
+    if (midi.currentId) select.value = midi.currentId;
+  };
+
+  toggle.onchange = async () => {
+    if (toggle.checked) {
+      try {
+        const outs = await midi.init();
+        if (!outs.length) { toggle.checked = false; span.textContent = "MIDI Out (none found)"; return; }
+        populate(outs);
+        select.disabled = false;
+        midi.enabled = true;
+        span.textContent = "MIDI Out";
+      } catch {
+        toggle.checked = false;
+        span.textContent = "MIDI Out (unavailable)";
+      }
+    } else {
+      midi.enabled = false;
+      midi.allOff();
+      select.disabled = true;
+    }
+  };
+  select.onchange = () => midi.select(select.value);
+}
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;

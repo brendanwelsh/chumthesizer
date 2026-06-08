@@ -1,6 +1,6 @@
 # magic-trackpad-ulanzi-synth
 
-> Apple Magic Trackpad 2 (multitouch + pressure) as an expressive synth & groovebox, with an Ulanzi dial for live control. Multitouch surface for playing, 8 synth presets, beat pads + step sequencer with starter grooves, dial = live DJ filter. Your setup is saved between sessions.
+> Apple Magic Trackpad 2 (multitouch + pressure) as an expressive synth & groovebox, with an Ulanzi dial for live control. Multitouch surface for playing, 8 synth presets, continuous timbre morph, 11 scales, beat pads + step sequencer with starter grooves, dial = live DJ filter, optional MIDI-out to a DAW. Your setup is saved between sessions.
 
 ## What it is (the dream)
 A unique tactile music controller: the Magic Trackpad 2's multitouch + force surface becomes an expressive playing surface (X / Y / pressure → notes, pitch, filter, etc.), and the Ulanzi dial + buttons handle transport, volume, and patch/scene selection. Part instrument, part music player. Likely needs its own standalone software (not just a Ulanzi Deck plugin) because it reads raw trackpad input and emits MIDI/audio.
