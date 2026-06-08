@@ -55,6 +55,14 @@ html, body {
 }
 .chip:hover { border-color: rgba(255, 255, 255, 0.28); }
 .chip.live { border-color: var(--live); color: var(--live); }
+.chip.surprise {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(110,168,255,0.22), rgba(110,168,255,0.08));
+  color: #cfe0ff;
+  font-weight: 600;
+}
+.chip.surprise:hover { background: rgba(110,168,255,0.32); }
+.chip.surprise:active { transform: translateY(1px); }
 .chip .dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--muted);

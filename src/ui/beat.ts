@@ -5,7 +5,7 @@ import { PATTERNS } from "../audio/patterns";
 /** The groovebox panel: transport, 8 finger-drum pads, and an 8×16 step grid
  *  with a live playhead. Returns `hit(i)` so the keyboard and Ulanzi buttons
  *  can fire the same pads. */
-export function initBeat(root: HTMLElement, seq: Sequencer): { hit: (i: number) => void } {
+export function initBeat(root: HTMLElement, seq: Sequencer): { hit: (i: number) => void; syncTempo: () => void } {
   root.innerHTML = "";
 
   // ── transport ──
@@ -71,6 +71,12 @@ export function initBeat(root: HTMLElement, seq: Sequencer): { hit: (i: number) 
     setTimeout(() => p.classList.remove("flash"), 90);
   }
 
+  // keep the tempo widget in sync when bpm changes elsewhere (e.g. Surprise)
+  function syncTempo(): void {
+    tempo.value = String(seq.bpm);
+    bpmLabel.textContent = String(seq.bpm);
+  }
+
   // keep grid in sync with the pattern + draw the playhead
   let last = -1;
   const draw = () => {
@@ -91,7 +97,7 @@ export function initBeat(root: HTMLElement, seq: Sequencer): { hit: (i: number) 
   };
   requestAnimationFrame(draw);
 
-  return { hit };
+  return { hit, syncTempo };
 }
 
 function el(tag: string, cls: string): HTMLElement {

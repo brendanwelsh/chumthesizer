@@ -25,6 +25,8 @@ export interface KeyboardOpts {
   onNoteOff: (id: string) => void;
   /** Space → all notes off */
   onPanic: () => void;
+  /** Z → randomize the whole sound + beat */
+  onSurprise: () => void;
 }
 
 export function initKeyboard(o: KeyboardOpts): void {
@@ -58,6 +60,7 @@ export function initKeyboard(o: KeyboardOpts): void {
       case "Comma": params.root = (params.root + 11) % 12; o.refresh(); break;
       case "Period": params.root = (params.root + 1) % 12; o.refresh(); break;
       case "Backquote": params.glide = !params.glide; o.refresh(); break;
+      case "KeyZ": o.onSurprise(); break;
       case "Minus": o.onPreset(-1); break;
       case "Equal": o.onPreset(1); break;
       case "Space": e.preventDefault(); o.onPanic(); held.clear(); break;

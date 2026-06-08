@@ -27,6 +27,7 @@ export function initControls(root: HTMLElement, engine: Engine): { refresh: () =
   preset.className = "preset-sel";
   PRESETS.forEach((p, i) => preset.append(new Option(p.name, String(i))));
   preset.onchange = () => {
+    if (preset.value.startsWith("__")) return; // transient "Random" entry
     applyPreset(PRESETS[Number(preset.value)]);
     engine.applyParams();
     engine.setBrightness(params.brightness);
@@ -34,7 +35,12 @@ export function initControls(root: HTMLElement, engine: Engine): { refresh: () =
   };
   refreshers.push(() => {
     const idx = PRESETS.findIndex((p) => p.name === params.presetName);
-    preset.value = String(idx < 0 ? 0 : idx);
+    if (idx >= 0) { preset.value = String(idx); return; }
+    // non-preset state (e.g. after Surprise) — show it without snapping back
+    let opt = preset.querySelector('option[value="__custom"]') as HTMLOptionElement | null;
+    if (!opt) { opt = new Option(params.presetName, "__custom"); preset.append(opt); }
+    opt.textContent = params.presetName;
+    preset.value = "__custom";
   });
   group("Preset", preset);
 
@@ -84,6 +90,13 @@ export function initControls(root: HTMLElement, engine: Engine): { refresh: () =
   slider("Brightness", () => params.brightness, (v) => engine.setBrightness(v));
   slider("Reverb", () => params.reverb, (v) => { params.reverb = v; engine.applyParams(); });
   slider("Delay", () => params.delay, (v) => { params.delay = v; engine.applyParams(); });
+
+  // chords — one finger plays a full chord
+  const chord = document.createElement("input");
+  chord.type = "checkbox";
+  chord.onchange = () => { params.chord = chord.checked; };
+  refreshers.push(() => (chord.checked = params.chord));
+  group("Chords", chord);
 
   // glide
   const glide = document.createElement("input");

@@ -5,6 +5,8 @@ import { Engine } from "./audio/engine";
 import { DrumKit } from "./audio/drums";
 import { Sequencer } from "./audio/sequencer";
 import { PRESETS, applyPreset } from "./audio/presets";
+import { SCALES } from "./audio/scales";
+import { PATTERNS } from "./audio/patterns";
 import { initPad } from "./input/pad";
 import { initKeyboard } from "./input/keyboard";
 import { Visualizer } from "./ui/visualizer";
@@ -41,6 +43,32 @@ const beat = initBeat(document.getElementById("beat")!, seq);
 
 const transport = () => { void engine.resume(); seq.toggle(); };
 
+// 🎲 one-tap discovery: randomize the whole sound + a fresh groove
+const surprise = () => {
+  const r = (a: number, b: number) => a + Math.random() * (b - a);
+  params.morph = Math.random();
+  params.brightness = r(0.3, 0.9);
+  params.reverb = r(0.05, 0.7);
+  params.delay = r(0, 0.5);
+  params.filterEnv = r(0, 0.95);
+  params.filterDecay = r(0.1, 0.5);
+  params.subLevel = r(0.2, 0.75);
+  params.attack = Math.random() < 0.3 ? r(0.15, 0.5) : r(0.003, 0.04);
+  params.release = r(0.25, 1.3);
+  params.scaleIndex = Math.floor(Math.random() * SCALES.length);
+  params.root = Math.floor(Math.random() * 12);
+  params.glide = Math.random() < 0.15;
+  params.chord = Math.random() < 0.5;
+  params.presetName = "Random ✨";
+  seq.setPattern(PATTERNS[Math.floor(Math.random() * (PATTERNS.length - 1))].hits);
+  seq.bpm = Math.round(r(85, 140));
+  engine.applyParams();
+  engine.setBrightness(params.brightness);
+  refresh();
+  beat.syncTempo();
+  void engine.resume();
+};
+
 const cyclePreset = (dir: number) => {
   const idx = PRESETS.findIndex((p) => p.name === params.presetName);
   const next = (((idx < 0 ? 0 : idx) + dir) % PRESETS.length + PRESETS.length) % PRESETS.length;
@@ -61,12 +89,15 @@ initKeyboard({
   onNoteOn: (id, note, pressure) => midi.noteOn(id, note, pressure),
   onNoteOff: (id) => midi.noteOff(id),
   onPanic: panic,
+  onSurprise: surprise,
 });
+
+(document.getElementById("surprise") as HTMLButtonElement).onclick = surprise;
 
 // ── MIDI-out controls (lazy: only asks for MIDI access when toggled on) ─────
 buildMidiUi();
 
-new Visualizer(canvas, engine.analyserNode, contacts).start();
+new Visualizer(canvas, engine.analyserNode, contacts, seq).start();
 
 // ── device connect buttons ────────────────────────────────────────────────
 const tpBtn = document.getElementById("connect-trackpad") as HTMLButtonElement;

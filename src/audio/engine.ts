@@ -18,6 +18,7 @@ export class Engine {
   private delayWet: GainNode;
   private vibrato: GainNode;
   private voices = new Map<string, Voice>();
+  private chordKeys = new Map<string, string[]>();
 
   constructor() {
     const ctx = new AudioContext({ latencyHint: "interactive" });
@@ -109,11 +110,6 @@ export class Engine {
     return 48 + params.octave * 12 + params.root;
   }
 
-  private freqFromX(x: number): number {
-    const degree = xToDegree(x, params.spread);
-    return midiToFreq(degreeToMidi(SCALES[params.scaleIndex], this.baseMidi(), degree));
-  }
-
   private freqFromDegree(degree: number): number {
     return midiToFreq(degreeToMidi(SCALES[params.scaleIndex], this.baseMidi(), degree));
   }
@@ -130,37 +126,62 @@ export class Engine {
     return new Voice(this.ctx, this.dry, freq, pressure, y, pan, this.vibrato);
   }
 
+  /** Chord mode turns one touch into a scale triad (root + thirds). */
+  private degreesFor(d: number): number[] {
+    return params.chord ? [d, d + 2, d + 4] : [d];
+  }
+
+  private spawn(id: string, degrees: number[], y: number, pressure: number, pan: number): void {
+    const keys: string[] = [];
+    degrees.forEach((deg, i) => {
+      const key = i === 0 ? id : `${id}~${i}`;
+      this.voices.set(key, this.newVoice(this.freqFromDegree(deg), y, pressure, pan));
+      keys.push(key);
+    });
+    this.chordKeys.set(id, keys);
+  }
+
   playXY(id: string, x: number, y: number, pressure: number): void {
     void this.resume();
-    this.voices.get(id)?.release();
-    this.voices.set(id, this.newVoice(this.freqFromX(x), y, pressure, panFromX(x)));
+    this.release(id);
+    this.spawn(id, this.degreesFor(xToDegree(x, params.spread)), y, pressure, panFromX(x));
   }
 
   updateXY(id: string, x: number, y: number, pressure: number): void {
-    const v = this.voices.get(id);
-    if (!v) return;
-    v.setPressure(pressure);
-    v.setY(y);
-    v.setPan(panFromX(x));
-    if (params.glide) v.setFreq(this.freqFromX(x));
+    const keys = this.chordKeys.get(id);
+    if (!keys) return;
+    const pan = panFromX(x);
+    const degs = this.degreesFor(xToDegree(x, params.spread));
+    keys.forEach((key, i) => {
+      const v = this.voices.get(key);
+      if (!v) return;
+      v.setPressure(pressure);
+      v.setY(y);
+      v.setPan(pan);
+      if (params.glide) v.setFreq(this.freqFromDegree(degs[i] ?? degs[0]));
+    });
   }
 
   /** For the computer keyboard, which plays exact scale degrees. */
   playDegree(id: string, degree: number, pressure: number): void {
     void this.resume();
-    this.voices.get(id)?.release();
-    const pan = panFromX(degree / Math.max(1, params.spread));
-    this.voices.set(id, this.newVoice(this.freqFromDegree(degree), 0.5, pressure, pan));
+    this.release(id);
+    this.spawn(id, this.degreesFor(degree), 0.5, pressure, panFromX(degree / Math.max(1, params.spread)));
   }
 
   release(id: string): void {
-    this.voices.get(id)?.release();
-    this.voices.delete(id);
+    const keys = this.chordKeys.get(id) ?? [id];
+    for (const k of keys) {
+      this.voices.get(k)?.release();
+      this.voices.delete(k);
+    }
+    this.chordKeys.delete(id);
   }
 
   releaseAll(): void {
     for (const v of this.voices.values()) v.release();
     this.voices.clear();
+    this.chordKeys.clear();
   }
 
   setBrightness(b: number): void {

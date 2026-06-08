@@ -25,6 +25,9 @@ export const PRESETS: Preset[] = [
   { name: "E-Piano",   morph: 0.34, attack: 0.01,  release: 0.6,  brightness: 0.5,  reverb: 0.4,  delay: 0.15, subLevel: 0.40, filterEnv: 0.5, filterDecay: 0.3 },
   { name: "Stab",      morph: 0.72, attack: 0.005, release: 0.18, brightness: 0.7,  reverb: 0.15, delay: 0.10, subLevel: 0.30, filterEnv: 0.9, filterDecay: 0.1 },
   { name: "Dream Glide", morph: 0.62, attack: 0.2, release: 1.0,  brightness: 0.45, reverb: 0.7,  delay: 0.40, subLevel: 0.35, filterEnv: 0.2, filterDecay: 0.4, glide: true },
+  { name: "Vapor",     morph: 0.12, attack: 0.4,   release: 1.6,  brightness: 0.40, reverb: 0.75, delay: 0.45, subLevel: 0.30, filterEnv: 0.1, filterDecay: 0.5 },
+  { name: "Laser",     morph: 1.0,  attack: 0.002, release: 0.5,  brightness: 0.85, reverb: 0.30, delay: 0.50, subLevel: 0.20, filterEnv: 0.95, filterDecay: 0.12 },
+  { name: "Growl",     morph: 0.70, attack: 0.005, release: 0.3,  brightness: 0.30, reverb: 0.15, delay: 0.10, subLevel: 0.80, filterEnv: 0.6, filterDecay: 0.18, octave: -1 },
 ];
 
 /** Mutates params to match a preset. Caller then pushes to the engine + UI. */

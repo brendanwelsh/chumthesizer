@@ -1,17 +1,25 @@
 import type { Contact } from "../types";
+import type { Sequencer } from "../audio/sequencer";
 import { params } from "../state";
 import { SCALES, NOTE_NAMES, degreeToMidi } from "../audio/scales";
+
+interface Ripple { x: number; y: number; age: number; hue: number; }
 
 /** Draws the play surface: a live waveform across the back, and a glowing blob
  *  per active contact — bigger and brighter the harder you press. */
 export class Visualizer {
   private ctx: CanvasRenderingContext2D;
   private wave = new Uint8Array(0);
+  private prevIds = new Set<string>();
+  private ripples: Ripple[] = [];
+  private lastStep = -1;
+  private pulse = 0;
 
   constructor(
     private canvas: HTMLCanvasElement,
     private analyser: AnalyserNode,
     private contacts: Map<string, Contact>,
+    private seq: Sequencer,
   ) {
     this.ctx = canvas.getContext("2d")!;
     this.wave = new Uint8Array(analyser.fftSize);
@@ -41,6 +49,13 @@ export class Visualizer {
     const h = this.canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
 
+    // beat pulse: the whole pad brightens on each downbeat
+    this.updatePulse();
+    if (this.pulse > 0.01) {
+      ctx.fillStyle = `rgba(110,168,255,${this.pulse * 0.08})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+
     this.drawGuides(ctx, w, h);
 
     // back waveform
@@ -55,6 +70,10 @@ export class Visualizer {
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
+
+    // touch ripples (spawn one when a new contact appears)
+    this.spawnRipples(w, h);
+    this.drawRipples(ctx);
 
     // contacts
     for (const c of this.contacts.values()) {
@@ -103,6 +122,40 @@ export class Visualizer {
       ctx.fillRect(x0, 0, 1, h);
       ctx.fillStyle = isRoot ? "rgba(174,203,255,0.85)" : "rgba(255,255,255,0.22)";
       ctx.fillText(NOTE_NAMES[pc], cx, h - 8);
+    }
+  }
+
+  private updatePulse(): void {
+    const step = this.seq.visualStep();
+    if (step !== this.lastStep) {
+      this.lastStep = step;
+      if (step >= 0 && step % 4 === 0) this.pulse = 1;
+    }
+    this.pulse *= 0.9;
+  }
+
+  private spawnRipples(w: number, h: number): void {
+    for (const c of this.contacts.values()) {
+      if (!this.prevIds.has(c.id)) {
+        this.ripples.push({ x: c.x * w, y: c.y * h, age: 0, hue: 200 + c.x * 140 });
+      }
+    }
+    this.prevIds.clear();
+    for (const c of this.contacts.values()) this.prevIds.add(c.id);
+    if (this.ripples.length > 120) this.ripples.splice(0, this.ripples.length - 120);
+  }
+
+  private drawRipples(ctx: CanvasRenderingContext2D): void {
+    for (let i = this.ripples.length - 1; i >= 0; i--) {
+      const r = this.ripples[i];
+      r.age += 1;
+      const alpha = 0.5 - r.age * 0.022;
+      if (alpha <= 0) { this.ripples.splice(i, 1); continue; }
+      ctx.strokeStyle = `hsla(${r.hue}, 90%, 72%, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 16 + r.age * 6, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 }

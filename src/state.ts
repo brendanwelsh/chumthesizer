@@ -19,6 +19,8 @@ export interface Params {
   /** if true, sliding left/right bends pitch continuously (theremin-ish);
    *  if false, the note locks when you touch down (more musical) */
   glide: boolean;
+  /** one finger plays a full chord instead of a single note */
+  chord: boolean;
   /** how many scale degrees span the full width of the pad */
   spread: number;
   /** seconds */
@@ -44,6 +46,7 @@ export const params: Params = {
   reverb: 0.35,
   delay: 0.25,
   glide: false,
+  chord: false,
   spread: 15,
   attack: 0.01,
   release: 0.35,
