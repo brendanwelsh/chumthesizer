@@ -1,0 +1,3 @@
+# Spike deps. Install:  pip install -r requirements.txt
+hidapi        # raw HID read of the trackpad's multitouch frames (pressure)
+# pyusb       # only needed for the Zadig/WinUSB fallback path

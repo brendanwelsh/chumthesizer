@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>magic-trackpad-synth</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo">◐</span>
+          <span class="name">MAGIC TRACKPAD</span>
+          <span class="tag">synth · groovebox</span>
+        </div>
+        <div class="devices">
+          <button id="connect-trackpad" class="chip" title="Connect an Apple Magic Trackpad 2 over USB for multitouch + pressure">
+            <span class="dot"></span> Trackpad
+          </button>
+          <button id="connect-dial" class="chip" title="Connect an Ulanzi dial / Stream Controller for live control">
+            <span class="dot"></span> Dial
+          </button>
+        </div>
+      </header>
+
+      <main class="stage">
+        <canvas id="pad"></canvas>
+        <div id="hint" class="hint">
+          <strong>Play it.</strong> Drag on the pad, or use your keyboard
+          (<kbd>A</kbd>…<kbd>;</kbd> &amp; <kbd>Q</kbd>…<kbd>P</kbd>).
+          <kbd>1</kbd>–<kbd>8</kbd> are drum pads · <kbd>Enter</kbd> plays the beat.
+          Plug in a Magic Trackpad for real pressure + multitouch.
+          <span class="hint-go">Click anywhere to start sound.</span>
+        </div>
+      </main>
+
+      <section class="beat" id="beat"><!-- built by ui/beat.ts --></section>
+
+      <footer class="controls" id="controls"><!-- built by ui/controls.ts --></footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
