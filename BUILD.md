@@ -1,6 +1,6 @@
-# Ulanzi MagicPad — build & play
+# Magic Trackpad + Ulanzi Synth — build & play
 
-> Repo: `magic-trackpad-synth`. The instrument is **Ulanzi MagicPad**.
+> Repo: `magic-trackpad-ulanzi-synth`.
 
 A tactile web synth. Play it with your **mouse, computer keyboard, or a touchscreen
 right now** — and when you plug in an **Apple Magic Trackpad 2** it lights up with real

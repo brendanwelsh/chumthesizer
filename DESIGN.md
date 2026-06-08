@@ -1,4 +1,4 @@
-# Design — magic-trackpad-synth (R&D)
+# Design — magic-trackpad-ulanzi-synth (R&D)
 
 ## The dream
 A one-of-a-kind tactile instrument: Magic Trackpad 2 as an expressive multitouch +

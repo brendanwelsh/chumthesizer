@@ -1,4 +1,4 @@
-# magic-trackpad-synth — *Ulanzi MagicPad*
+# magic-trackpad-ulanzi-synth
 
 > Apple Magic Trackpad 2 (multitouch + pressure) as an expressive synth & groovebox, with an Ulanzi dial for live control. Multitouch surface for playing, 8 synth presets, beat pads + step sequencer with starter grooves, dial = live DJ filter. Your setup is saved between sessions.
 
@@ -34,4 +34,4 @@ Full controls, hardware setup, and architecture: [BUILD.md](BUILD.md).
   it ourselves (byte 7 of each finger struct). That raw-pressure read is the core R&D
   challenge — see [DESIGN.md](DESIGN.md). First spike:
   [`spikes/trackpad_pressure_spike.py`](spikes/trackpad_pressure_spike.py).
-- Repo: `magic-trackpad-synth` (private)
+- Repo: `magic-trackpad-ulanzi-synth` (private)

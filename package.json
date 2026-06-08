@@ -1,5 +1,5 @@
 {
-  "name": "magic-trackpad-synth",
+  "name": "magic-trackpad-ulanzi-synth",
   "version": "0.1.0",
   "private": true,
   "description": "Magic Trackpad 2 multitouch + pressure into a Web Audio synth & groovebox, with an Ulanzi dial for live control.",

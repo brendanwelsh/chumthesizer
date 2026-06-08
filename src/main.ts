@@ -103,7 +103,7 @@ window.addEventListener("pointerdown", kick);
 window.addEventListener("keydown", kick);
 
 // ── persistence ────────────────────────────────────────────────────────────
-const STORE_KEY = "ulanzi-magicpad.v1";
+const STORE_KEY = "magic-trackpad-ulanzi-synth.v1";
 
 function loadState(): void {
   try {

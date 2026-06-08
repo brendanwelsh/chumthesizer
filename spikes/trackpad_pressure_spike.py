@@ -10,7 +10,7 @@ THE FORCE DATA AWAY — you get a click, not a pressure value. But the force is 
 there in the device's raw multitouch frames; Linux's hid-magicmouse driver decodes
 it as byte 7 of each finger's 9-byte struct. This spike grabs those raw frames on
 Windows and decodes the pressure ourselves. If pressure numbers stream when you
-press, the whole magic-trackpad-synth project is unblocked.
+press, the whole magic-trackpad-ulanzi-synth project is unblocked.
 
 This is the make-or-break feasibility test. It is UNTESTED on real hardware here
 (no trackpad on this box) — run it and tell me what it prints.
