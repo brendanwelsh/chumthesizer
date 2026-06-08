@@ -5,6 +5,22 @@
 ## What it is (the dream)
 A unique tactile music controller: the Magic Trackpad 2's multitouch + force surface becomes an expressive playing surface (X / Y / pressure → notes, pitch, filter, etc.), and the Ulanzi dial + buttons handle transport, volume, and patch/scene selection. Part instrument, part music player. Likely needs its own standalone software (not just a Ulanzi Deck plugin) because it reads raw trackpad input and emits MIDI/audio.
 
+## Hardware
+The two input devices this instrument is built around:
+
+<table>
+  <tr>
+    <td align="center" valign="middle"><img src="assets/magic-trackpad.png" width="420" alt="Apple Magic Trackpad (black)"></td>
+    <td align="center" valign="middle"><img src="assets/ulanzi-dial.png" width="190" alt="Ulanzi dial controller"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Apple Magic Trackpad</b> — multitouch + pressure playing surface</sub></td>
+    <td align="center"><sub><b>Ulanzi dial</b> — live filter, transport &amp; drum-pad control</sub></td>
+  </tr>
+</table>
+
+<sub>Product images © their respective manufacturers, shown only to illustrate the hardware.</sub>
+
 ## Status
 **Playable first build.** A web synth you can play right now with mouse / keyboard / touch,
 that lights up with real multitouch + pressure when a Magic Trackpad 2 is plugged in, plus the
