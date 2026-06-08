@@ -37,6 +37,15 @@ const beat = initBeat(document.getElementById("beat")!, seq);
 
 const transport = () => { void engine.resume(); seq.toggle(); };
 
+const cyclePreset = (dir: number) => {
+  const idx = PRESETS.findIndex((p) => p.name === params.presetName);
+  const next = (((idx < 0 ? 0 : idx) + dir) % PRESETS.length + PRESETS.length) % PRESETS.length;
+  applyPreset(PRESETS[next]);
+  engine.applyParams();
+  engine.setBrightness(params.brightness);
+  refresh();
+};
+
 initKeyboard({
   engine,
   visualOn: (id, x, pressure) => contacts.set(id, { id, x, y: 0.4, pressure }),
@@ -44,6 +53,7 @@ initKeyboard({
   refresh,
   onPad: (i) => { void engine.resume(); beat.hit(i); },
   onTransport: transport,
+  onPreset: cyclePreset,
 });
 
 new Visualizer(canvas, engine.analyserNode, contacts).start();

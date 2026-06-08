@@ -71,8 +71,16 @@ export class Engine {
     delay.connect(fbLp).connect(fb).connect(delay);
     delay.connect(this.delayWet).connect(this.master);
 
-    // master -> DJ filter -> analyser -> out
-    this.master.connect(this.perfHP).connect(this.perfLP).connect(this.analyser).connect(ctx.destination);
+    // brickwall limiter so stacking drums + chords never clips harshly
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -2;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.1;
+
+    // master -> DJ filter -> limiter -> analyser -> out
+    this.master.connect(this.perfHP).connect(this.perfLP).connect(limiter).connect(this.analyser).connect(ctx.destination);
 
     // shared vibrato LFO -> detune (cents)
     const lfo = ctx.createOscillator();

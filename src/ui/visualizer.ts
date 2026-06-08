@@ -1,5 +1,6 @@
 import type { Contact } from "../types";
 import { params } from "../state";
+import { SCALES, NOTE_NAMES, degreeToMidi } from "../audio/scales";
 
 /** Draws the play surface: a live waveform across the back, and a glowing blob
  *  per active contact — bigger and brighter the harder you press. */
@@ -40,6 +41,8 @@ export class Visualizer {
     const h = this.canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
 
+    this.drawGuides(ctx, w, h);
+
     // back waveform
     this.analyser.getByteTimeDomainData(this.wave);
     ctx.lineWidth = 2;
@@ -76,13 +79,30 @@ export class Visualizer {
       ctx.stroke();
     }
 
-    // glide hint line
-    if (params.glide) {
-      ctx.fillStyle = "rgba(255,255,255,0.04)";
-      for (let i = 0; i <= params.spread; i++) {
-        const gx = (i / params.spread) * w;
-        ctx.fillRect(gx, 0, 1, h);
+  }
+
+  /** Faint per-degree columns + note names so you can see where pitches live;
+   *  the root note of the scale is highlighted. */
+  private drawGuides(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+    const scale = SCALES[params.scaleIndex];
+    const base = 48 + params.octave * 12 + params.root;
+    ctx.textAlign = "center";
+    ctx.font = "10px Inter, system-ui, sans-serif";
+    for (let d = 0; d < params.spread; d++) {
+      const x0 = (d / params.spread) * w;
+      const cx = ((d + 0.5) / params.spread) * w;
+      const midi = degreeToMidi(scale, base, d);
+      const pc = ((midi % 12) + 12) % 12;
+      const isRoot = pc === params.root;
+
+      if (isRoot) {
+        ctx.fillStyle = "rgba(110,168,255,0.07)";
+        ctx.fillRect(x0, 0, w / params.spread, h);
       }
+      ctx.fillStyle = "rgba(255,255,255,0.045)";
+      ctx.fillRect(x0, 0, 1, h);
+      ctx.fillStyle = isRoot ? "rgba(174,203,255,0.85)" : "rgba(255,255,255,0.22)";
+      ctx.fillText(NOTE_NAMES[pc], cx, h - 8);
     }
   }
 }
