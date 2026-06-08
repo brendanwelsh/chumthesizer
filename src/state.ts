@@ -23,7 +23,15 @@ export interface Params {
   /** seconds */
   attack: number;
   release: number;
-}
+  /** 0..1 weight of the sub oscillator (body / bass) */
+  subLevel: number;
+  /** 0..1 extra filter brightness at note onset (pluck snap) */
+  filterEnv: number;
+  /** seconds for that snap to fall back */
+  filterDecay: number;
+  /** name of the active synth preset */
+  presetName: string;
+};
 
 export const params: Params = {
   waveform: "sawtooth",
@@ -38,4 +46,8 @@ export const params: Params = {
   spread: 15,
   attack: 0.01,
   release: 0.35,
+  subLevel: 0.35,
+  filterEnv: 0.0,
+  filterDecay: 0.2,
+  presetName: "Pluck",
 };

@@ -123,6 +123,14 @@ body.started .hint { opacity: 0; }
 .transport button:hover { border-color: rgba(255,255,255,0.3); }
 .transport .play.on { background: rgba(110,168,255,0.2); border-color: var(--accent); color: var(--accent); }
 .transport .rec.on { background: rgba(255,90,110,0.2); border-color: #ff5a6e; color: #ff9aa8; }
+.transport select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 13px;
+}
 .transport .tempo { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 12px; }
 .transport .tempo input[type="range"] { width: 130px; accent-color: var(--accent); }
 .transport .bpm { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 28px; }

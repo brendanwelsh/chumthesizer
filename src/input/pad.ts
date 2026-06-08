@@ -12,21 +12,21 @@ export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink): void {
     };
   };
 
-  // mouse has no pressure (reports 0.5 while down); give it a lively default
-  // and let vertical position drive timbre instead.
-  const pressureOf = (e: PointerEvent) =>
-    e.pointerType === "mouse" ? 0.7 : clamp01(e.pressure > 0 ? e.pressure : 0.5);
+  // mouse/trackpad-as-cursor report no real pressure, so let vertical position
+  // be the dynamics axis (higher = louder/brighter). Pen & touch use real force.
+  const pressureFor = (e: PointerEvent, y: number) =>
+    e.pointerType === "mouse" ? clamp01(0.25 + (1 - y) * 0.75) : clamp01(e.pressure > 0 ? e.pressure : 0.5);
 
   canvas.addEventListener("pointerdown", (e) => {
     canvas.setPointerCapture(e.pointerId);
     const { x, y } = norm(e);
-    sink.start({ id: `pad:${e.pointerId}`, x, y, pressure: pressureOf(e) });
+    sink.start({ id: `pad:${e.pointerId}`, x, y, pressure: pressureFor(e, y) });
   });
 
   canvas.addEventListener("pointermove", (e) => {
     if (e.buttons === 0 && e.pointerType === "mouse") return;
     const { x, y } = norm(e);
-    sink.move({ id: `pad:${e.pointerId}`, x, y, pressure: pressureOf(e) });
+    sink.move({ id: `pad:${e.pointerId}`, x, y, pressure: pressureFor(e, y) });
   });
 
   const end = (e: PointerEvent) => sink.end(`pad:${e.pointerId}`);

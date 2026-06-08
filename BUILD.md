@@ -1,4 +1,6 @@
-# magic-trackpad-synth — build & play
+# Ulanzi MagicPad — build & play
+
+> Repo: `magic-trackpad-synth`. The instrument is **Ulanzi MagicPad**.
 
 A tactile web synth. Play it with your **mouse, computer keyboard, or a touchscreen
 right now** — and when you plug in an **Apple Magic Trackpad 2** it lights up with real
@@ -34,7 +36,12 @@ It's a groovebox: a melodic surface on top, a drum machine + step sequencer unde
 - **Keyboard:** `A S D F G H J K L ;` and `Q W E R T Y U I O P` = two rows of scale notes
   (hold for chords). `1`–`8` = drum pads. `Enter` = play/stop the beat. `[` `]` octave,
   `,` `.` root, `` ` `` glide, **`Space` = panic** (all synth notes off).
-- **Controls bar:** scale, root, octave, waveform, volume, brightness, reverb, delay, glide.
+- **Presets:** 8 synth patches (Pluck, Warm Pad, Sub Bass, Bells, Lead, E-Piano, Stab, Dream
+  Glide) in the **Preset** dropdown. **Patterns:** 6 starter grooves (Boom Bap, Four Floor,
+  Trap, Breakbeat, House, Empty) in the beat bar.
+- **Controls bar:** preset, scale, root, octave, waveform, volume, brightness, reverb, delay, glide.
+- **It remembers:** your preset, settings, tempo, and beat are saved automatically and restored
+  next launch.
 
 ## Connect the hardware
 
@@ -64,6 +71,8 @@ src/
     voice.ts         one note: 2 detuned oscs + sub → filter → ADSR → pan (+ vibrato)
     drums.ts         8 synthesized drum voices (kick/snare/hat/clap/tom/rim/cowbell)
     sequencer.ts     16-step drum sequencer with a lookahead clock
+    presets.ts       synth patches (Pluck, Pad, Bass, Bells, …)
+    patterns.ts      starter drum grooves
     engine.ts        master graph: compressor, reverb, delay, DJ filter, analyser, voices
   input/
     pad.ts           pointer events (mouse/touch/pen) → sink

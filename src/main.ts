@@ -1,8 +1,10 @@
 import "./styles.css";
 import type { Contact, SurfaceSink, DeviceStatus } from "./types";
+import { params } from "./state";
 import { Engine } from "./audio/engine";
 import { DrumKit } from "./audio/drums";
 import { Sequencer } from "./audio/sequencer";
+import { PRESETS, applyPreset } from "./audio/presets";
 import { initPad } from "./input/pad";
 import { initKeyboard } from "./input/keyboard";
 import { Visualizer } from "./ui/visualizer";
@@ -15,6 +17,11 @@ const engine = new Engine();
 const kit = new DrumKit(engine.ctx, engine.drumBus);
 const seq = new Sequencer(engine.ctx, kit);
 const contacts = new Map<string, Contact>();
+
+// restore the last session (or fall back to the default preset + groove)
+loadState();
+engine.applyParams();
+engine.setBrightness(params.brightness);
 
 const sink: SurfaceSink = {
   start(c) { contacts.set(c.id, c); engine.playXY(c.id, c.x, c.y, c.pressure); },
@@ -84,6 +91,32 @@ const kick = () => {
 };
 window.addEventListener("pointerdown", kick);
 window.addEventListener("keydown", kick);
+
+// ── persistence ────────────────────────────────────────────────────────────
+const STORE_KEY = "ulanzi-magicpad.v1";
+
+function loadState(): void {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) { applyPreset(PRESETS[0]); return; }
+    const s = JSON.parse(raw);
+    if (s.params && typeof s.params === "object") Object.assign(params, s.params);
+    if (typeof s.bpm === "number") seq.bpm = clamp(s.bpm, 40, 240);
+    if (Array.isArray(s.pattern)) seq.restore(s.pattern);
+  } catch {
+    applyPreset(PRESETS[0]);
+  }
+}
+
+function saveState(): void {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ params, bpm: seq.bpm, pattern: seq.snapshot() }));
+  } catch {
+    /* storage unavailable — fine */
+  }
+}
+setInterval(saveState, 2500);
+window.addEventListener("beforeunload", saveState);
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;

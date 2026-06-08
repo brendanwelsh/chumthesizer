@@ -11,7 +11,7 @@ function createWindow() {
     width: 1180,
     height: 760,
     backgroundColor: "#0a0c14",
-    title: "magic-trackpad-synth",
+    title: "Ulanzi MagicPad",
     webPreferences: { sandbox: false },
   });
 

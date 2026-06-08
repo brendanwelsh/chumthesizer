@@ -38,6 +38,28 @@ export class Sequencer {
     for (const row of this.pattern) row.fill(false);
   }
 
+  /** Replace the pattern from a list of fired steps per track. */
+  setPattern(hits: number[][]): void {
+    this.clear();
+    for (let tr = 0; tr < this.tracks && tr < hits.length; tr++) {
+      for (const step of hits[tr]) {
+        if (step >= 0 && step < this.steps) this.pattern[tr][step] = true;
+      }
+    }
+  }
+
+  /** Serialize / restore for persistence. */
+  snapshot(): boolean[][] {
+    return this.pattern.map((row) => row.slice());
+  }
+  restore(rows: boolean[][]): void {
+    if (!Array.isArray(rows) || rows.length !== this.tracks) return;
+    for (let tr = 0; tr < this.tracks; tr++) {
+      if (!Array.isArray(rows[tr]) || rows[tr].length !== this.steps) return;
+    }
+    this.pattern = rows.map((row) => row.slice());
+  }
+
   start(): void {
     if (this.playing) return;
     this.playing = true;

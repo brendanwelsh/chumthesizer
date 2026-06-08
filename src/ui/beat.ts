@@ -1,5 +1,6 @@
 import type { Sequencer } from "../audio/sequencer";
 import { DRUM_NAMES } from "../audio/drums";
+import { PATTERNS } from "../audio/patterns";
 
 /** The groovebox panel: transport, 8 finger-drum pads, and an 8×16 step grid
  *  with a live playhead. Returns `hit(i)` so the keyboard and Ulanzi buttons
@@ -22,10 +23,15 @@ export function initBeat(root: HTMLElement, seq: Sequencer): { hit: (i: number) 
   tempo.oninput = () => { seq.bpm = Number(tempo.value); bpmLabel.textContent = tempo.value; };
   tempoWrap.append(tempo, bpmLabel);
 
+  const pattern = document.createElement("select");
+  pattern.className = "pattern-sel";
+  PATTERNS.forEach((p, i) => pattern.append(new Option(p.name, String(i))));
+  pattern.onchange = () => seq.setPattern(PATTERNS[Number(pattern.value)].hits);
+
   play.onclick = () => { seq.toggle(); play.textContent = seq.playing ? "■ Stop" : "▶ Play"; play.classList.toggle("on", seq.playing); };
   rec.onclick = () => { seq.recording = !seq.recording; rec.classList.toggle("on", seq.recording); };
   clear.onclick = () => seq.clear();
-  bar.append(play, rec, clear, tempoWrap);
+  bar.append(play, rec, clear, pattern, tempoWrap);
 
   // ── pads ──
   const pads = el("div", "pads");

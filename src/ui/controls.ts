@@ -1,13 +1,16 @@
 import type { Engine } from "../audio/engine";
 import { params } from "../state";
 import { SCALES, NOTE_NAMES } from "../audio/scales";
+import { PRESETS, applyPreset } from "../audio/presets";
 
 /** Builds the bottom control bar and keeps it in sync. Returns a `refresh` you
- *  call whenever params change from elsewhere (keyboard shortcuts, the dial). */
+ *  call whenever params change from elsewhere (keyboard shortcuts, the dial,
+ *  loading a preset). */
 export function initControls(root: HTMLElement, engine: Engine): { refresh: () => void } {
   root.innerHTML = "";
 
   const refreshers: Array<() => void> = [];
+  const refresh = () => refreshers.forEach((fn) => fn());
 
   const group = (label: string, el: HTMLElement) => {
     const wrap = document.createElement("label");
@@ -18,6 +21,22 @@ export function initControls(root: HTMLElement, engine: Engine): { refresh: () =
     root.append(wrap);
     return wrap;
   };
+
+  // preset — applies a whole patch at once
+  const preset = document.createElement("select");
+  preset.className = "preset-sel";
+  PRESETS.forEach((p, i) => preset.append(new Option(p.name, String(i))));
+  preset.onchange = () => {
+    applyPreset(PRESETS[Number(preset.value)]);
+    engine.applyParams();
+    engine.setBrightness(params.brightness);
+    refresh();
+  };
+  refreshers.push(() => {
+    const idx = PRESETS.findIndex((p) => p.name === params.presetName);
+    preset.value = String(idx < 0 ? 0 : idx);
+  });
+  group("Preset", preset);
 
   // scale
   const scale = document.createElement("select");
@@ -82,7 +101,6 @@ export function initControls(root: HTMLElement, engine: Engine): { refresh: () =
   panic.onclick = () => engine.releaseAll();
   root.append(panic);
 
-  const refresh = () => refreshers.forEach((fn) => fn());
   refresh();
   return { refresh };
 }

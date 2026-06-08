@@ -61,7 +61,7 @@ export class Voice {
     vibrato.connect(this.osc2.detune);
 
     const subGain = ctx.createGain();
-    subGain.gain.value = 0.35;
+    subGain.gain.value = params.subLevel;
 
     this.osc1.connect(mix);
     this.osc2.connect(mix);
@@ -89,14 +89,20 @@ export class Voice {
     if (this.released) return;
     this.p = p;
     const t = this.ctx.currentTime;
+    const cut = this.targetCutoff();
     if (initial) {
       this.amp.gain.cancelScheduledValues(t);
       this.amp.gain.setValueAtTime(0, t);
       this.amp.gain.linearRampToValueAtTime(this.targetAmp(), t + params.attack);
+      // filter snap: open bright at onset, fall back to the pressure target
+      const peak = Math.min(14000, cut * (1 + params.filterEnv * 3));
+      this.filter.frequency.cancelScheduledValues(t);
+      this.filter.frequency.setValueAtTime(peak, t);
+      this.filter.frequency.exponentialRampToValueAtTime(Math.max(60, cut), t + Math.max(0.02, params.filterDecay));
     } else {
       this.amp.gain.setTargetAtTime(this.targetAmp(), t, 0.03);
+      this.filter.frequency.setTargetAtTime(cut, t, 0.02);
     }
-    this.filter.frequency.setTargetAtTime(this.targetCutoff(), t, 0.02);
   }
 
   setY(y: number): void {
