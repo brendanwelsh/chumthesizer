@@ -1,4 +1,5 @@
 import { params } from "../state";
+import { makeMorphWave } from "./wavetable";
 
 /** One playing note: 2 detuned oscillators + a sub, through a lowpass filter,
  *  an amp envelope, and a stereo panner. Pressure drives both loudness and
@@ -47,8 +48,9 @@ export class Voice {
     this.osc1 = ctx.createOscillator();
     this.osc2 = ctx.createOscillator();
     this.sub = ctx.createOscillator();
-    this.osc1.type = params.waveform;
-    this.osc2.type = params.waveform;
+    const wave = makeMorphWave(ctx, params.morph);
+    this.osc1.setPeriodicWave(wave);
+    this.osc2.setPeriodicWave(wave);
     this.sub.type = "sine";
     this.osc1.frequency.value = freq;
     this.osc2.frequency.value = freq;

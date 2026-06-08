@@ -59,14 +59,12 @@ export function initControls(root: HTMLElement, engine: Engine): { refresh: () =
   refreshers.push(() => (oct.value = String(params.octave)));
   group("Octave", oct);
 
-  // waveform
-  const wave = document.createElement("select");
-  (["sawtooth", "square", "triangle", "sine"] as OscillatorType[]).forEach((w) =>
-    wave.append(new Option(w, w)),
-  );
-  wave.onchange = () => { params.waveform = wave.value as OscillatorType; };
-  refreshers.push(() => (wave.value = params.waveform));
-  group("Wave", wave);
+  // timbre morph: sine → triangle → saw → square
+  const timbre = document.createElement("input");
+  timbre.type = "range"; timbre.min = "0"; timbre.max = "1"; timbre.step = "0.01";
+  timbre.oninput = () => { params.morph = Number(timbre.value); };
+  refreshers.push(() => (timbre.value = String(params.morph)));
+  group("Timbre", timbre);
 
   // sliders
   const slider = (

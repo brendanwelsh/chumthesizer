@@ -1,7 +1,8 @@
 /** Live, shared synth parameters. UI controls and the Ulanzi dial both mutate
  *  this; the audio engine reads it. One source of truth. */
 export interface Params {
-  waveform: OscillatorType;
+  /** 0..1 timbre morph: sine → triangle → sawtooth → square */
+  morph: number;
   scaleIndex: number;
   /** root pitch class, 0 = C .. 11 = B */
   root: number;
@@ -34,7 +35,7 @@ export interface Params {
 };
 
 export const params: Params = {
-  waveform: "sawtooth",
+  morph: 0.66, // sawtooth-ish
   scaleIndex: 0,
   root: 0, // C
   octave: 0,
