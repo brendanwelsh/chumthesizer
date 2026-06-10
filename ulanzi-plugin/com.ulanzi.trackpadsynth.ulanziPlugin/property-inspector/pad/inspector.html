@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="../../libs/css/uspi.css" />
+  <script src="../../libs/js/constants.js"></script>
+  <script src="../../libs/js/eventEmitter.js"></script>
+  <script src="../../libs/js/timers.js"></script>
+  <script src="../../libs/js/utils.js"></script>
+  <script src="../../libs/js/ulanziApi.js"></script>
+</head>
+<body>
+  <div class="uspi-wrapper">
+    <form id="property-inspector">
+      <div class="uspi-item">
+        <div class="uspi-item-label">Pad</div>
+        <select class="uspi-item-value" name="pad" id="padSelect">
+          <option value="">Auto (by placement order)</option>
+          <option value="1">Pad 1</option>
+          <option value="2">Pad 2</option>
+          <option value="3">Pad 3</option>
+          <option value="4">Pad 4</option>
+          <option value="5">Pad 5</option>
+          <option value="6">Pad 6</option>
+          <option value="7">Pad 7</option>
+          <option value="8">Pad 8</option>
+        </select>
+      </div>
+      <div class="uspi-item">
+        <div class="uspi-item-label"></div>
+        <div class="uspi-item-value" style="font-size:12px;opacity:.7;line-height:1.4">
+          Pressing this key hits a drum pad in the synth. Leave on <b>Auto</b> and drop the action on
+          all 7 keys to get 7 distinct pads with no setup, or pin a specific pad here.
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const select = document.getElementById("padSelect");
+    let savedParam = null;
+
+    $UD.connect("com.ulanzi.ulanzistudio.trackpadsynth.pad");
+
+    function applySaved() {
+      if (savedParam) Utils.setFormValue(savedParam, "#property-inspector");
+    }
+
+    $UD.onConnected(applySaved);
+
+    $UD.onAdd((message) => {
+      savedParam = message.param || null;
+      applySaved();
+    });
+
+    document.getElementById("property-inspector").addEventListener("change", () => {
+      const params = Utils.getFormValue("#property-inspector");
+      $UD.sendParamFromPlugin(params);
+    });
+  </script>
+</body>
+</html>

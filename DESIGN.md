@@ -134,7 +134,139 @@ WebHID.)
 [`hid-magicmouse.c`](https://github.com/torvalds/linux/blob/master/drivers/hid/hid-magicmouse.c)
 — authoritative MT2 frame format.
 
-## 2. The Ulanzi dial (the easy part)
+### Multitouch on Windows without sacrificing the cursor — the driver path (researched 2026-06-08)
+
+Reading the **raw** trackpad over HID is OS-blocked on Windows (proven here: WebHID *and* node-hid both
+get **zero frames** and can't even send the multitouch-enable feature report — the Precision-Touchpad
+driver holds the device exclusively). So raw **pressure** needs WinUSB/Zadig, which claims the interface
+and would cost the cursor (and a spare mouse). But for **multi-finger position** — the bigger half of
+"expressive surface" — there's a clean, already-solved, cursor-preserving path that needs no Zadig:
+
+1. **Install a Precision-Touchpad driver for the MT2.** The community drivers read the device's raw
+   multitouch and present it to Windows as a real precision touchpad (multi-finger + gestures), keeping
+   the cursor working. Use the **Microsoft-signed** build:
+   [vitoplantamura/MagicTrackpad2ForWindows](https://github.com/vitoplantamura/MagicTrackpad2ForWindows)
+   (`v2.0`, `MT2FW11-20260223-MSSigned.zip`) — a signed build of
+   [imbushuo/mac-precision-touchpad](https://github.com/imbushuo/mac-precision-touchpad). **Install:**
+   unzip, open the AMD64 folder, right-click the `.inf` → **Install**. **First uninstall** any
+   conflicting trackpad software (Magic Utilities, Trackpad++, old Apple/imbushuo). **Revert** any time
+   via Device Manager → the trackpad → *Uninstall device / roll back driver* (or DriverStore Explorer).
+   Note: our unit is the **Lightning USB** MT2 (`05ac:0265`) — confirm the driver binds it (Device
+   Manager shows "Apple … Precision Touchpad"); the base imbushuo build supports `0265`.
+2. **Read the finger contacts via the Windows Raw Input API.** A precision touchpad streams per-contact
+   X / Y / contact-id / tip-switch as HID reports an app can read with `RegisterRawInputDevices` +
+   `WM_INPUT` (reference: [emoacht/RawInput.Touchpad](https://github.com/emoacht/RawInput.Touchpad)). In
+   our app this lives in Electron's **main process** (a small N-API/native reader) and forwards contacts
+   to the renderer — the same shape as the dial bridge.
+
+**What this gives us — and what it doesn't:**
+- ✅ Multiple fingers with position — the expressive multitouch surface, **cursor intact, no Zadig, no
+  second mouse.**
+- ❌ **No Force-Touch pressure.** PTP reports carry no per-contact pressure; the Apple drivers read the
+  pressure byte internally and *throw it away*. Real pressure still requires claiming the raw device
+  (WinUSB → loses the cursor) — deferred, and effectively a macOS-only luxury for now.
+- **Pressure substitute on Windows:** map each finger's **Y position or contact size → loudness/
+  brightness** (the on-screen pad already maps Y→dynamics for the mouse), so the surface still feels
+  expressive per finger.
+
+**Status:** the driver is a one-time user install (one admin click). The Raw Input reader (step 2) is the
+build task on our side. `src/input/trackpad.ts` (raw-HID/WebHID decode) stays for macOS/Linux and the
+eventual WinUSB pressure path; it can't work on Windows for the reason above.
+
+*Sources:* [imbushuo/mac-precision-touchpad](https://github.com/imbushuo/mac-precision-touchpad) ·
+[vitoplantamura/MagicTrackpad2ForWindows](https://github.com/vitoplantamura/MagicTrackpad2ForWindows) ·
+[emoacht/RawInput.Touchpad](https://github.com/emoacht/RawInput.Touchpad) ·
+[Apple multi-touch HID protocol](https://developer.apple.com/forums/thread/69863).
+
+## 2. The Ulanzi dial — RESOLVED: the real unit is a D100H, and the plugin bridge is the path
+
+> ⚠️ The original guess below (Stream Controller **D200**, `2207:0019`, direct USB HID) was **wrong
+> for our hardware**. The actual device is a **Ulanzi D100H**, which behaves completely differently.
+> The full reverse-engineering lives in the sibling repo `../ulanzi-d100h-homebrew/`. What follows is
+> the decision and the evidence; `src/input/dial.ts` is kept but is **D200-only**, and the live path
+> is the **UlanziDeck plugin bridge** in `ulanzi-plugin/` + `src/input/dial-bridge.ts`.
+
+### What the D100H actually is
+- Enumerates as **`KEHWIN / Dial_Lite`, VID `0xfff1` / PID `0x0082`** (the BLE-chipset identity) —
+  *not* Ulanzi's `0x2207`. So the old `requestDevice` filter never surfaces it.
+- **Bluetooth-only** (USB-C is charge-only). It's a BLE HID peripheral; the OS surfaces it through
+  the normal HID stack. Verified present here as `BTHLE\…` "Ulanzi Dial".
+- **No vendor framing.** It emits standard **Consumer Control** reports `[0x02, lo, hi]`: dial =
+  Vol Up/Down/Mute, top 3 keys = Prev/Play/Next — all readable. The `0x7c 0x7c` D200 parser never
+  fires on it.
+- The **4 side keys send Ctrl+C/V/Z/Y on the Keyboard collection, which Windows blocks apps from
+  reading.** So raw HID gives **dial + 3 keys only**, *and* it moves real system volume / skips your
+  media as a side effect (those are genuine system keys; suppressing them needs an OS-level hook the
+  web/Electron sandbox can't install).
+
+### Q1 — can the device be unlocked / reprogrammed to emit our own codes standalone? **No.**
+We need all 7 keys, so the first question was whether the 4 side keys can be remapped at the device
+level (firmware option, HID feature/output report, or the vendor interfaces `0xfff1` / `0xfffd`).
+Evidence, layered strongest-first:
+
+1. **Tested in the homebrew repo:** remap the dial in Ulanzi Studio (e.g. to `F13`–`F17`), fully quit
+   Studio, turn the dial → it goes **straight back to volume**. Custom layouts **do not persist to the
+   device**; there is no "Save to device" and no user-writable offline profile (only a factory
+   `dial.bin`). Studio works purely in **online mode** — it receives the BLE-HID input and dispatches
+   the action *in software*. So there is no persistent binding to replay.
+2. **First-hand HID probe (this machine, live device, `node-hid`):** enumerated all **5** collections
+   (Keyboard, Consumer, Mouse, vendor `0xfff1`, vendor `0xfffd`) and read **no feature reports** off
+   any of them (`getFeatureReport(0..8)` came back empty everywhere, including both vendor interfaces).
+   The vendor interfaces only ever emitted the periodic heartbeat the homebrew repo documented — no
+   per-key channel, no writable surface.
+3. **A true wire-level sniff of "what Studio sends when you bind" isn't even applicable** (there's no
+   device write to capture — see #1) **and isn't feasible here anyway**: the link is BLE, so USBPcap
+   can't see it; capturing it would need BLE-sniffer hardware (e.g. an nRF52840). Not worth it given #1
+   already disproves the premise.
+
+**Conclusion:** the D100H can't be turned into a standalone custom controller. The realistic
+equivalent of "overwrite its map the way the Ulanzi app does" is to **consume the device while a host
+of ours runs** — exactly what Studio does. Of the candidate hosting paths:
+
+- **(a) UlanziDeck plugin bridge — CHOSEN.** A Node plugin binds an **Encoder** action to the dial and
+  a **Keypad** action to **all 7 keys**, and forwards `onDialRotate` / `onDialDown` / `onRun` to the
+  synth over a localhost WebSocket. Gives **all 7 keys + a clean dial with zero system side effects**.
+  Requires Ulanzi Studio running. This is the homebrew-verified clean path and is what we built.
+- (b) Studio "Hotkey" remap of the 4 side keys to obscure chords + a local key listener — messier,
+  brittle, still needs Studio. Rejected.
+- (c) Raw HID only (dial + 3 keys, with volume/media side effects) — a no-Studio fallback that
+  **cannot meet the 7-key requirement**, so it's documented, not built. (`src/input/dial.ts` is the
+  D200 raw-HID code; it doesn't work on the D100H at all.)
+
+### What we built (path a)
+```
+Ulanzi D100H ──BLE──► Ulanzi Studio ──► UlanziDeck plugin (ulanzi-plugin/, Node + ws)
+                                              │  WebSocketServer on ws://127.0.0.1:48907
+                                              ▼
+                          src/input/dial-bridge.ts (WebSocket client)
+                                              │  drives the existing DialHandlers
+                                              ▼
+                          engine.setPerformanceFilter / seq.toggle / beat.hit   (unchanged)
+```
+- **`ulanzi-plugin/com.ulanzi.trackpadsynth.ulanziPlugin/`** — the plugin. `plugin/app.js` connects to
+  Studio and runs a localhost WS server; `manifest.json` declares the Encoder + Keypad actions; the
+  SDK (`ulanzi-api/`, `libs/`) and `ws` are vendored so it runs under Studio's bundled Node 20. Built
+  from the same template as the author's working `ulanzi-camera-switcher` plugin.
+- **`src/input/dial-bridge.ts`** — connects to the socket, auto-reconnects, and maps
+  `{rotate|press|button}` → `onRotate / onPress / onButton`. `main.ts` now wires the bridge instead of
+  the D200 WebHID code; the dial mapping object is untouched.
+- **Pad mapping:** the Drum Pad action defaults to **Auto** (pads handed out in first-seen order → 7
+  distinct pads with no config); a Property Inspector can pin Pad 1–8 per key.
+- **Verified end-to-end without the hardware:** `npm run test:bridge` stands up a fake Studio, launches
+  the real `plugin/app.js`, feeds it real-shaped `dialrotate` / `dialdown` / `run` frames, and asserts
+  the synth client receives the correct protocol (both rotate dirs, press, stable key→pad indices).
+  **Passes.** Plugin-SDK gotcha avoided: we key off the action **`uuid`** (and `onRun`), never the
+  per-instance `actionid`.
+
+### Requires-Studio caveat
+Because nothing persists to the device, the dial + 7 keys only work **while Ulanzi Studio is running**
+with the plugin installed (`npm run install:plugin`, then restart Studio, then bind the actions). With
+Studio closed the device reverts to a plain volume/media remote. That's an inherent D100H limitation,
+not a project one. (The Magic Trackpad path is independent of this and unaffected.)
+
+---
+
+### Historical note — the original D200 plan (kept for reference / if a D200 ever shows up)
 
 > First: **identify the exact device + USB VID/PID** (Device Manager → Details → Hardware IDs,
 > or enumerate via HID). "Ulanzi dial" most likely = the **Stream Controller D200/D200X**
@@ -151,7 +283,8 @@ Both paths work; **prefer A**, and it uses the *same* HID layer as the trackpad.
   [`UlanziDeckPlugin-SDK`](https://github.com/UlanziTechnology/UlanziDeckPlugin-SDK) is a
   WebSocket SDK (Node.js v20 / HTML). A ~50-line plugin subscribes to `onDialRotate` /
   `onDialRotateLeft|Right` / `onDialDown` / `onDialUp` and forwards over a local socket to our
-  app. Zero reverse engineering, but needs UlanziStudio running.
+  app. Zero reverse engineering, but needs UlanziStudio running. *(This is essentially path (a)
+  above — which, for the D100H, turned out to be the only viable route, not a fallback.)*
 
 ## 3. Sound — Web Audio in-app (primary), MIDI optional
 

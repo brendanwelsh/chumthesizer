@@ -1,18 +1,24 @@
 import { params } from "../state";
 import { makeMorphWave } from "./wavetable";
 
-/** One playing note: 2 detuned oscillators + a sub, through a lowpass filter,
- *  an amp envelope, and a stereo panner. Pressure drives both loudness and
- *  brightness, so pressing harder makes the note swell and open up. A shared
- *  vibrato LFO is wired into the oscillator detune for a little life. */
+/** One playing note: 2 detuned oscillators (+ an optional interval stack) and a
+ *  sub, optionally FM-modulated and dusted with a noise/air layer, run through a
+ *  lowpass filter, an amp envelope, and a stereo panner. Pressure drives both
+ *  loudness and brightness, so pressing harder makes the note swell and open up.
+ *  A shared vibrato LFO is wired (scaled per-preset) into the oscillator detune
+ *  for a little life. Timbre params are snapshotted at note-on so each layer keeps
+ *  the character it was played with. */
 export class Voice {
   private ctx: AudioContext;
   private osc1: OscillatorNode;
   private osc2: OscillatorNode;
   private sub: OscillatorNode;
+  private fmOsc: OscillatorNode | null = null;
+  private noiseSrc: AudioBufferSourceNode | null = null;
   private filter: BiquadFilterNode;
   private amp: GainNode;
   private panner: StereoPannerNode;
+  private vibScale: GainNode;
   private released = false;
 
   // live expression state, folded together into filter cutoff
@@ -34,7 +40,7 @@ export class Voice {
 
     this.filter = ctx.createBiquadFilter();
     this.filter.type = "lowpass";
-    this.filter.Q.value = 7;
+    this.filter.Q.value = params.resonance;
 
     this.amp = ctx.createGain();
     this.amp.gain.value = 0;
@@ -51,16 +57,39 @@ export class Voice {
     const wave = makeMorphWave(ctx, params.morph);
     this.osc1.setPeriodicWave(wave);
     this.osc2.setPeriodicWave(wave);
-    this.sub.type = "sine";
-    this.osc1.frequency.value = freq;
-    this.osc2.frequency.value = freq;
-    this.sub.frequency.value = freq / 2;
-    this.osc1.detune.value = -7;
-    this.osc2.detune.value = +7;
+    this.sub.type = params.subWave;
 
-    // shared vibrato adds to each oscillator's detune
-    vibrato.connect(this.osc1.detune);
-    vibrato.connect(this.osc2.detune);
+    // second osc can sit on a fixed interval above the root (unison..octave)
+    const intervalRatio = Math.pow(2, params.interval / 12);
+    this.osc1.frequency.value = freq;
+    this.osc2.frequency.value = freq * intervalRatio;
+    const subDiv = Math.pow(2, Math.max(0, params.subOctave));
+    this.sub.frequency.value = freq / subDiv;
+
+    const det = params.detune;
+    this.osc1.detune.value = -det;
+    this.osc2.detune.value = +det;
+
+    // shared vibrato adds to each oscillator's detune, scaled per preset
+    this.vibScale = ctx.createGain();
+    this.vibScale.gain.value = params.vibratoDepth;
+    vibrato.connect(this.vibScale);
+    this.vibScale.connect(this.osc1.detune);
+    this.vibScale.connect(this.osc2.detune);
+
+    // optional FM: a modulator oscillator drives the carriers' frequency for
+    // bell / clang / growl timbres. Depth scales with the note so the ratio
+    // stays musical across the keyboard.
+    if (params.fm > 0) {
+      this.fmOsc = ctx.createOscillator();
+      this.fmOsc.type = "sine";
+      this.fmOsc.frequency.value = freq * params.fmRatio;
+      const fmDepth = ctx.createGain();
+      fmDepth.gain.value = params.fm * freq * 4;
+      this.fmOsc.connect(fmDepth);
+      fmDepth.connect(this.osc1.frequency);
+      fmDepth.connect(this.osc2.frequency);
+    }
 
     const subGain = ctx.createGain();
     subGain.gain.value = params.subLevel;
@@ -68,18 +97,34 @@ export class Voice {
     this.osc1.connect(mix);
     this.osc2.connect(mix);
     this.sub.connect(subGain).connect(mix);
+
+    // optional noise/air layer — its own gain so it reads as breath/top, and it
+    // shares the filter so it opens up with pressure too.
+    if (params.noise > 0) {
+      this.noiseSrc = ctx.createBufferSource();
+      this.noiseSrc.buffer = noiseBuffer(ctx);
+      this.noiseSrc.loop = true;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.value = params.noise * 0.35;
+      this.noiseSrc.connect(noiseGain).connect(mix);
+    }
+
     mix.connect(this.filter).connect(this.amp).connect(this.panner).connect(dest);
 
     this.osc1.start(t);
     this.osc2.start(t);
     this.sub.start(t);
+    this.fmOsc?.start(t);
+    this.noiseSrc?.start(t);
 
     this.y = y;
     this.setPressure(pressure, true);
   }
 
   private targetAmp(): number {
-    return (0.12 + this.p * 0.88) * 0.32;
+    // wide dynamic range with a LOW floor so a light/low touch is genuinely soft, and a gentler
+    // overall scale so the (now denser) voices don't blast. p is driven by vertical position.
+    return (0.04 + this.p * 0.96) * 0.24;
   }
 
   private targetCutoff(): number {
@@ -127,9 +172,12 @@ export class Voice {
   setFreq(freq: number): void {
     if (this.released) return;
     const t = this.ctx.currentTime;
+    const intervalRatio = Math.pow(2, params.interval / 12);
     this.osc1.frequency.setTargetAtTime(freq, t, 0.04);
-    this.osc2.frequency.setTargetAtTime(freq, t, 0.04);
-    this.sub.frequency.setTargetAtTime(freq / 2, t, 0.04);
+    this.osc2.frequency.setTargetAtTime(freq * intervalRatio, t, 0.04);
+    const subDiv = Math.pow(2, Math.max(0, params.subOctave));
+    this.sub.frequency.setTargetAtTime(freq / subDiv, t, 0.04);
+    if (this.fmOsc) this.fmOsc.frequency.setTargetAtTime(freq * params.fmRatio, t, 0.04);
   }
 
   release(): void {
@@ -143,9 +191,24 @@ export class Voice {
     this.osc1.stop(stopAt);
     this.osc2.stop(stopAt);
     this.sub.stop(stopAt);
+    this.fmOsc?.stop(stopAt);
+    this.noiseSrc?.stop(stopAt);
   }
 }
 
 function clampPan(p: number): number {
   return p < -1 ? -1 : p > 1 ? 1 : p;
+}
+
+// one short looping white-noise buffer per context, shared across voices
+const noiseCache = new WeakMap<BaseAudioContext, AudioBuffer>();
+function noiseBuffer(ctx: BaseAudioContext): AudioBuffer {
+  const hit = noiseCache.get(ctx);
+  if (hit) return hit;
+  const len = Math.floor(ctx.sampleRate * 1.0);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  noiseCache.set(ctx, buf);
+  return buf;
 }

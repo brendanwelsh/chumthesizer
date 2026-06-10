@@ -1,0 +1,10 @@
+{
+  "name": "com.chum.chumthesizer.sdplugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Elgato Stream Deck plugin: forward the 3 Stream Deck Pedal presses to Chumthesizer over a localhost WebSocket.",
+  "main": "bin/plugin.js",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,53 +1,58 @@
-# magic-trackpad-ulanzi-synth
+# CHUM-1
 
-> Apple Magic Trackpad 2 (multitouch + pressure) as an expressive synth & groovebox, with an Ulanzi dial for live control. Multitouch surface for playing, 8 synth presets, continuous timbre morph, 11 scales, beat pads + step sequencer with starter grooves, dial = live DJ filter, optional MIDI-out to a DAW. Your setup is saved between sessions.
+> A tactile, OP-1-inspired groovebox you play with three real devices. A complete redesign
+> and rebrand (forked from Chumthesizer) — not just a new look, a new instrument.
 
-## What it is (the dream)
-A unique tactile music controller: the Magic Trackpad 2's multitouch + force surface becomes an expressive playing surface (X / Y / pressure → notes, pitch, filter, etc.), and the Ulanzi dial + buttons handle transport, volume, and patch/scene selection. Part instrument, part music player. Likely needs its own standalone software (not just a Ulanzi Deck plugin) because it reads raw trackpad input and emits MIDI/audio.
+The one **Apple Magic Trackpad 2** becomes a **multi-instrument surface** — Synth, Keys, or
+Drums, switched live. An **Ulanzi D100H** dial warps the sound + swaps presets on its 7 keys.
+An **Elgato Stream Deck Pedal** drives the loop tape hands-free. A **robust looper** records,
+overdubs, mutes, stacks, and plays layers at ½×/1×/2× — all on one drift-free clock. A reactive
+OP-1-style screen tells you what's going on. And yes, the shark still cruises the trackpad.
 
-## Hardware
-The two input devices this instrument is built around:
-
-<table>
-  <tr>
-    <td align="center" valign="middle"><img src="assets/magic-trackpad.png" width="420" alt="Apple Magic Trackpad (black)"></td>
-    <td align="center" valign="middle"><img src="assets/ulanzi-dial.png" width="190" alt="Ulanzi dial controller"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub><b>Apple Magic Trackpad</b> — multitouch + pressure playing surface</sub></td>
-    <td align="center"><sub><b>Ulanzi dial</b> — live filter, transport &amp; drum-pad control</sub></td>
-  </tr>
-</table>
-
-<sub>Product images © their respective manufacturers, shown only to illustrate the hardware.</sub>
-
-## Status
-**Playable first build.** A web synth you can play right now with mouse / keyboard / touch,
-that lights up with real multitouch + pressure when a Magic Trackpad 2 is plugged in, plus the
-Ulanzi dial for control. See [BUILD.md](BUILD.md) to run it and [DESIGN.md](DESIGN.md) for the why.
-
-## Run it
-```bash
-npm install
-npm run dev     # open http://127.0.0.1:5173 in Chrome/Edge, click to start, play
-npm run app     # or launch the Electron desktop app (best for the trackpad)
+## Run
 ```
-Full controls, hardware setup, and architecture: [BUILD.md](BUILD.md).
+npm install
+npm run dev     # Vite dev server → http://127.0.0.1:5175 in Chrome/Edge
+npm run app     # build the trackpad helper + plugin, build, launch the Electron app (best)
+npm run build   # production build → dist/
+npm run typecheck
+```
+Three real devices are optional — it's fully playable right now with **mouse / keyboard**:
 
-## Play
-- **Surface** (mouse / touch / pen / Magic Trackpad): left↔right = pitch (snapped to a scale), press = louder + brighter. Real multitouch + pressure on the trackpad.
-- **Keyboard:** `A`–`;` / `Q`–`P` = notes · `1`–`8` = drum pads · `Enter` = play/stop beat · `Space` = panic.
-- **Beat:** 8 synth-drum pads + a 16-step sequencer (comes with a groove). Hit play and jam.
-- **Ulanzi dial:** rotate = live DJ filter sweep · press = play/stop · its buttons = drum pads.
+## Play (keyboard)
+- **A S D F G H J K L ;** + **Q W E R T Y U I O P** — play the active instrument
+- **1–6** — record / play / mute that loop slot (the loop tape)
+- **R** — arm record into the next empty loop · **Enter** — Play / Stop the groove + loops
+- **Tab / Shift-Tab** — next / previous instrument · **Space** — panic (all notes off)
+- **[ ]** — octave down / up · type **jaws** for a surprise
 
-## How it's built
-- **Web app (TypeScript + Web Audio + WebHID) → shipped as an Electron app.** One codebase:
-  raw-HID input, an in-app synth, and the mapping all run the same in browser and Electron.
-- **Windows first** (welsh-gamingpc); **macOS later is nearly free** — same code, with a
-  Mac-only easy path in reserve. Build Windows, don't scope Mac yet, don't architect it out.
-- **The one hard problem is pressure.** No Windows driver exposes the trackpad's Force Touch
-  pressure — but the force is in the device's raw HID frames; we bypass the drivers and decode
-  it ourselves (byte 7 of each finger struct). That raw-pressure read is the core R&D
-  challenge — see [DESIGN.md](DESIGN.md). First spike:
-  [`spikes/trackpad_pressure_spike.py`](spikes/trackpad_pressure_spike.py).
-- Repo: `magic-trackpad-ulanzi-synth` (private)
+## The three devices
+- **Trackpad** — the instrument. Pick Synth / Keys / Drums / Sample above it. Each finger plays;
+  what you play records into the armed loop. (No system-mouse while you play — the C# helper
+  suppresses the cursor while fingers are down; wired USB.)
+- **Dial (Ulanzi D100H)** — turn = FX macro (filter scream → clean → bright); press = Play/Stop;
+  the 7 keys = the 7 sounds (Pretty/Pluck/Bass/Bells/Keys/Lead/Wild). If the keys land on the
+  wrong sound, **Settings → Dial keys → Calibrate** and press them in the on-screen order (~10s).
+- **Pedal (Elgato Stream Deck Pedal)** — Left = Record next loop · Middle = Play/Stop · Right = Undo.
+
+## What's new vs. Chumthesizer (v1)
+- **Multi-instrument trackpad** (Synth ribbon · Keys board · Drums grid · mic Sample) — all loopable.
+- **Robust looper**: record/overdub/play/mute/clear, **stacking**, **per-loop ½×/1×/2× speed**,
+  global pause — one shared clock, drift-free (`src/loop/looper.ts`).
+- **Functional dial + pedal** (loop-centric), and a **dial key calibration** that fixes mapping.
+- **OP-1 / Apple UI**: reactive screen, instrument switch, the loop tape, a Sound/Drums/Mix panel,
+  a settings sheet for device connections — minimalist, no emojis, one red (record), no overlap
+  at any window size.
+
+## Layout
+- `src/instruments/` — `instrument.ts` (contract), `synth.ts` · `keys.ts` · `drumpad.ts` ·
+  `sampler-inst.ts`, `rack.ts` (active instrument + replay routing)
+- `src/loop/looper.ts` — the robust multitrack looper
+- `src/audio/` — reused engine/voice/drums/sequencer/sounds/scales/sampler/midi (the proven guts)
+- `src/input/` — `*-bridge.ts` device WebSocket clients, `dial-map.ts` (canonical key map + learn)
+- `src/ui/` — `screen` · `instswitch` · `overlay` · `loopdeck` · `transport` · `panel` ·
+  `settings` · `dial` · `pedalview` · `visualizer` · `shark`
+- `src/main.ts` — wires inputs → rack → looper → engine + the UI
+
+Hardware setup notes (trackpad helper, the dial/pedal plugins) carry over from the fork —
+see `DESIGN.md` / `BUILD.md`. Settings persist to `localStorage` (`chum-1.v1`).

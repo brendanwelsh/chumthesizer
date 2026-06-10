@@ -13,6 +13,7 @@ export class Engine {
   private master: GainNode;
   private perfHP: BiquadFilterNode;
   private perfLP: BiquadFilterNode;
+  private perfDrive: WaveShaperNode;
   private analyser: AnalyserNode;
   private reverbWet: GainNode;
   private delayWet: GainNode;
@@ -45,6 +46,11 @@ export class Engine {
     this.perfLP.frequency.value = 20000;
     this.perfLP.Q.value = 0.9;
 
+    // drive/saturation that grows toward the knob extremes (the "crazy" grit)
+    this.perfDrive = ctx.createWaveShaper();
+    this.perfDrive.oversample = "2x";
+    this.perfDrive.curve = makeDriveCurve(0);
+
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 2048;
 
@@ -74,14 +80,14 @@ export class Engine {
 
     // brickwall limiter so stacking drums + chords never clips harshly
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -2;
-    limiter.knee.value = 0;
-    limiter.ratio.value = 20;
+    limiter.threshold.value = -3;
+    limiter.knee.value = 4;   // softer knee = less crunch/pump when stacking
+    limiter.ratio.value = 10;
     limiter.attack.value = 0.003;
     limiter.release.value = 0.1;
 
-    // master -> DJ filter -> limiter -> analyser -> out
-    this.master.connect(this.perfHP).connect(this.perfLP).connect(limiter).connect(this.analyser).connect(ctx.destination);
+    // master -> DJ filter -> drive -> limiter -> analyser -> out
+    this.master.connect(this.perfHP).connect(this.perfLP).connect(this.perfDrive).connect(limiter).connect(this.analyser).connect(ctx.destination);
 
     // shared vibrato LFO -> detune (cents)
     const lfo = ctx.createOscillator();
@@ -184,26 +190,45 @@ export class Engine {
     this.chordKeys.clear();
   }
 
+  /** Quickly duck + restore the master to kill ringing reverb/delay tails — a real "stop the
+   *  wash" so a long pad or a cranked filter can't drone on. */
+  silence(): void {
+    const t = this.ctx.currentTime;
+    const g = this.master.gain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(Math.max(0.0001, g.value), t);
+    g.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    g.linearRampToValueAtTime(params.masterVolume, t + 0.22);
+  }
+
   setBrightness(b: number): void {
     params.brightness = b;
     for (const v of this.voices.values()) v.setBrightness(b);
   }
 
-  /** Dial-driven DJ filter. amount -1 = muffled lowpass, 0 = open, +1 = thin highpass. */
+  /** Dial / on-screen knob — a wild performance macro. amount -1 = muffled, screaming
+   *  lowpass; 0 = open + clean; +1 = thin, whistling highpass. Resonance and drive both
+   *  ramp up toward the extremes so cranking it genuinely goes nuts (jam-sesh knob). */
   setPerformanceFilter(amount: number): void {
     const a = Math.max(-1, Math.min(1, amount));
     const t = this.ctx.currentTime;
+    const mag = Math.abs(a);
+    const reso = 0.7 + mag * 6; // resonant DJ sweep, kept below the self-oscillating drone
     if (a < 0) {
-      const lp = 120 * Math.pow(20000 / 120, 1 + a); // a:-1->120Hz, 0->20kHz
+      const lp = 90 * Math.pow(20000 / 90, 1 + a); // a:-1->90Hz, 0->20kHz
       this.perfLP.frequency.setTargetAtTime(lp, t, 0.02);
       this.perfHP.frequency.setTargetAtTime(20, t, 0.02);
-      this.perfLP.Q.setTargetAtTime(0.9 - a * 5, t, 0.02);
+      this.perfLP.Q.setTargetAtTime(reso, t, 0.02);
+      this.perfHP.Q.setTargetAtTime(0.7, t, 0.02);
     } else {
-      const hp = 20 * Math.pow(3500 / 20, a); // a:0->20Hz, 1->3500Hz
+      const hp = 20 * Math.pow(5000 / 20, a); // a:0->20Hz, 1->5kHz
       this.perfHP.frequency.setTargetAtTime(hp, t, 0.02);
       this.perfLP.frequency.setTargetAtTime(20000, t, 0.02);
-      this.perfHP.Q.setTargetAtTime(0.9 + a * 5, t, 0.02);
+      this.perfHP.Q.setTargetAtTime(reso, t, 0.02);
+      this.perfLP.Q.setTargetAtTime(0.7, t, 0.02);
     }
+    // crank grit/saturation toward the extremes
+    this.perfDrive.curve = makeDriveCurve(mag * 0.85);
   }
 
   /** Push the current params object into the live graph. */
@@ -217,6 +242,19 @@ export class Engine {
 
 function panFromX(x: number): number {
   return Math.max(-1, Math.min(1, (x - 0.5) * 1.5));
+}
+
+/** Soft-clip drive curve for the performance knob. amount 0 = clean (identity),
+ *  higher = more saturation/grit. */
+function makeDriveCurve(amount: number): Float32Array<ArrayBuffer> {
+  const n = 1024;
+  const curve = new Float32Array(new ArrayBuffer(n * 4));
+  const k = amount * 80;
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    curve[i] = k < 0.001 ? x : ((1 + k) * x) / (1 + k * Math.abs(x));
+  }
+  return curve;
 }
 
 function makeImpulse(ctx: BaseAudioContext, seconds = 2.6, decay = 3): AudioBuffer {

@@ -1,0 +1,52 @@
+{
+  "Author": "Welsh",
+  "Name": "Trackpad Synth Bridge",
+  "Description": "Use the Ulanzi D100H dial + all 7 keys to play the Magic Trackpad + Ulanzi Synth: dial = live DJ filter + play/stop, keys = drum pads. Forwards events to the synth over a localhost WebSocket.",
+  "Icon": "resources/pluginIcon.png",
+  "Version": "1.0.0",
+  "Category": "Trackpad Synth",
+  "CategoryIcon": "resources/categoryIcon.png",
+  "CodePath": "plugin/app.js",
+  "Type": "JavaScript",
+  "UUID": "com.ulanzi.ulanzistudio.trackpadsynth",
+  "Actions": [
+    {
+      "Name": "Filter & Transport",
+      "Icon": "resources/dial.png",
+      "state": 0,
+      "States": [
+        { "Name": "Dial", "Image": "resources/dial.png" }
+      ],
+      "Tooltip": "Rotate = live DJ filter sweep, press = play / stop the beat",
+      "UUID": "com.ulanzi.ulanzistudio.trackpadsynth.control",
+      "SupportedInMultiActions": false,
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "layout": "$UA1",
+        "TriggerDescription": {
+          "Rotate": "Filter sweep",
+          "Push": "Play / stop"
+        }
+      }
+    },
+    {
+      "Name": "Drum Pad",
+      "Icon": "resources/pad.png",
+      "PropertyInspectorPath": "property-inspector/pad/inspector.html",
+      "state": 0,
+      "States": [
+        { "Name": "Pad", "Image": "resources/pad.png" }
+      ],
+      "Tooltip": "Press to hit a drum pad in the synth. Put it on all 7 keys.",
+      "UUID": "com.ulanzi.ulanzistudio.trackpadsynth.pad",
+      "SupportedInMultiActions": true,
+      "Controllers": ["Keypad"]
+    }
+  ],
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" }
+  ],
+  "Software": {
+    "MinVersion": "2.1.0"
+  }
+}

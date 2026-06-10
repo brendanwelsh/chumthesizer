@@ -12,3 +12,21 @@ venv/
 .env.*
 !.env.example
 .DS_Store
+
+# C# helper build output
+trackpad-bridge/bin/
+trackpad-bridge/obj/
+
+# plugin deps
+ulanzi-plugin/**/node_modules/
+streamdeck-plugin/**/node_modules/
+
+# local scratch (screenshots, logs, backups, throwaway drive sequences)
+_*.log
+_*.png
+shot*.png
+drive.png
+legend.png
+_diag.png
+_drive_seq.js
+*.bak

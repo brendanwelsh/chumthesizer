@@ -1,0 +1,11 @@
+{
+  "name": "com.ulanzi.trackpadsynth.ulanziPlugin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ulanzi Deck plugin: forward the D100H dial + all 7 keys to the Magic Trackpad + Ulanzi Synth over a localhost WebSocket.",
+  "main": "plugin/app.js",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

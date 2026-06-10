@@ -32,26 +32,62 @@ export interface Params {
   filterEnv: number;
   /** seconds for that snap to fall back */
   filterDecay: number;
+
+  // ── expressive timbre params (added for the "vibe" palette) ──
+  /** oscillator spread in cents — small = thin/clean, large = fat/super-saw.
+   *  Default 7 reproduces the original detune. */
+  detune: number;
+  /** second-oscillator pitch offset in semitones (0 = unison, 7 = fifth,
+   *  12 = octave). Stacks an interval on top of every note. Default 0. */
+  interval: number;
+  /** sub-oscillator octaves below the note. Default 1. */
+  subOctave: number;
+  /** sub waveform: "sine" = clean weight, "square" = reedy/hollow body,
+   *  "triangle" = soft body. Default "sine". */
+  subWave: OscillatorType;
+  /** 0..1 FM amount — a modulator oscillator bends the carrier pitch for
+   *  metallic / clangy / growly tones. Default 0 (off). */
+  fm: number;
+  /** FM modulator frequency ratio vs the note. Default 2. */
+  fmRatio: number;
+  /** 0..1 white-noise "air" layer mixed in (breath, hiss, percussive top).
+   *  Default 0 (off). */
+  noise: number;
+  /** 0..1 scaler on the shared vibrato LFO depth. 1 = original depth,
+   *  0 = dead-steady pitch. Default 1. */
+  vibratoDepth: number;
+  /** lowpass resonance / emphasis. Default 7 (original Q). */
+  resonance: number;
+
   /** name of the active synth preset */
   presetName: string;
 };
 
 export const params: Params = {
-  morph: 0.66, // sawtooth-ish
+  morph: 0.34, // triangle→saw: clean with a little body, not buzzy
   scaleIndex: 0,
   root: 0, // C
   octave: 0,
   masterVolume: 0.8,
-  brightness: 0.5,
-  reverb: 0.35,
-  delay: 0.25,
+  brightness: 0.66,
+  reverb: 0.22,
+  delay: 0.12,
   glide: false,
   chord: false,
   spread: 15,
-  attack: 0.01,
-  release: 0.35,
-  subLevel: 0.35,
-  filterEnv: 0.0,
-  filterDecay: 0.2,
-  presetName: "Pluck",
+  attack: 0.004,   // punchy start
+  release: 0.28,
+  subLevel: 0.3,
+  filterEnv: 0.34,
+  filterDecay: 0.11,
+  detune: 2,       // tight, not chorusy/crunchy
+  interval: 0,
+  subOctave: 1,
+  subWave: "triangle",
+  fm: 0,
+  fmRatio: 2,
+  noise: 0,
+  vibratoDepth: 0.35,
+  resonance: 2,    // clean, no squelch
+  presetName: "Glass",
 };

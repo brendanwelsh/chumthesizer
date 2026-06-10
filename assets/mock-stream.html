@@ -1,0 +1,80 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Stream-ready mock</title>
+<style>
+  :root{ --cyan:#19e3ff; --mag:#ff2e88; --red:#ff3a2f; --ink:#eaf6ff; --muted:#6f7e8c; }
+  *{box-sizing:border-box;font-family:"Segoe UI",system-ui,sans-serif;}
+  html,body{margin:0;height:100%;}
+  body{background:radial-gradient(1000px 700px at 50% -20%,#0f1822,#05080c 70%); color:var(--ink); padding:20px 24px;}
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--red),var(--mag));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px rgba(255,46,136,.6);}
+  .name{font-weight:800;letter-spacing:1px;font-size:21px;text-shadow:0 0 14px rgba(25,227,255,.4);}
+  .tag{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:3px;}
+  .now{display:flex;align-items:center;gap:18px;}
+  .now .np{font-family:ui-monospace,monospace;}
+  .np .lbl{font-size:10px;color:var(--muted);letter-spacing:2px;}
+  .np .big{font-size:20px;font-weight:800;color:var(--cyan);text-shadow:0 0 12px rgba(25,227,255,.5);}
+  .chip{border:1.5px solid rgba(25,227,255,.4);background:rgba(25,227,255,.07);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;color:var(--cyan);}
+  .chip.rec{border-color:var(--red);color:#ff7a70;background:rgba(255,58,47,.12);}
+  .stage{display:flex;align-items:stretch;gap:22px;height:600px;}
+  .dialwrap{width:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+  .dialwrap img{width:100%;filter:drop-shadow(0 0 26px rgba(25,227,255,.25));}
+  .dlabel{font-size:10px;letter-spacing:3px;color:var(--muted);}
+  .board{flex:1;border-radius:22px;position:relative;overflow:hidden;background:linear-gradient(180deg,#0a1016,#04070a);border:2px solid rgba(25,227,255,.35);box-shadow:0 0 50px rgba(25,227,255,.12),inset 0 0 60px rgba(0,0,0,.7);display:flex;flex-direction:column;}
+  .wave{flex:1;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 24px;}
+  .wave i{flex:1;border-radius:2px;background:linear-gradient(180deg,var(--cyan),rgba(25,227,255,.15));box-shadow:0 0 8px rgba(25,227,255,.5);}
+  .shark{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font:700 60px ui-monospace,monospace;color:rgba(255,58,47,.5);text-shadow:0 0 20px rgba(255,58,47,.5);}
+  .scrub{height:46px;display:flex;align-items:center;gap:14px;padding:0 20px;border-top:1px solid rgba(25,227,255,.15);}
+  .scrub .lvl{flex:1;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--cyan) 60%,var(--mag) 60%,var(--mag) 78%,#333 78%);box-shadow:0 0 10px rgba(25,227,255,.4);}
+  .scrub small{font-family:ui-monospace,monospace;color:var(--muted);font-size:11px;}
+  .right{width:340px;display:flex;flex-direction:column;gap:12px;}
+  .vibes{display:flex;flex-wrap:wrap;gap:7px;}
+  .vibe{border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600;color:var(--ink);}
+  .vibe.on{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(25,227,255,.3);}
+  .secthead{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);}
+  .loops{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .loop{height:90px;border-radius:12px;background:#0c141c;border:1.5px solid rgba(255,255,255,.1);display:flex;flex-direction:column;justify-content:flex-end;padding:8px;position:relative;overflow:hidden;}
+  .loop b{font-size:20px;font-weight:800;} .loop small{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+  .loop .meter{position:absolute;left:0;bottom:0;width:100%;}
+  .loop.play{border-color:var(--cyan);} .loop.play .meter{height:60%;background:linear-gradient(180deg,transparent,rgba(25,227,255,.25));} .loop.play small{color:var(--cyan);}
+  .loop.rec{border-color:var(--red);} .loop.rec .meter{height:80%;background:linear-gradient(180deg,transparent,rgba(255,58,47,.3));} .loop.rec small{color:#ff7a70;}
+  .beat{display:flex;gap:3px;} .beat i{flex:1;height:30px;border-radius:5px;background:#0e1822;border:1px solid rgba(255,255,255,.08);}
+  .beat i.on{background:var(--mag);box-shadow:0 0 10px rgba(255,46,136,.6);} .beat i.b{background:#15212c;}
+</style></head>
+<body>
+  <div class="top">
+    <div class="brand"><div class="logo">🦈</div><div class="name">CHUMTHESIZER</div><span class="tag">live sound toy</span></div>
+    <div class="now">
+      <div class="np"><div class="lbl">NOW PLAYING</div><div class="big">PLUCK · 112</div></div>
+      <div class="chip">● Trackpad</div><div class="chip rec">● REC</div><div class="chip">🔒 Locked</div>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="dialwrap"><img src="file:///C:/Users/brend/Projects/ulanzi-synth/public/ulanzi-dial.png"><span class="dlabel">ULANZI DIAL</span></div>
+    <div class="board">
+      <div class="shark">&gt;((&deg;&gt;</div>
+      <div class="wave" id="wave"></div>
+      <div class="scrub"><small>LOOP</small><div class="lvl"></div><small>2 BARS · 78%</small></div>
+    </div>
+    <div class="right">
+      <div class="vibes" id="vibes"></div>
+      <div class="secthead">Loops</div>
+      <div class="loops">
+        <div class="loop play"><div class="meter"></div><b>1</b><small>playing</small></div>
+        <div class="loop rec"><div class="meter"></div><b>2</b><small>rec</small></div>
+        <div class="loop"><b>3</b><small>empty</small></div>
+        <div class="loop play"><div class="meter"></div><b>4</b><small>playing</small></div>
+        <div class="loop"><b>5</b><small>empty</small></div>
+        <div class="loop"><b>6</b><small>empty</small></div>
+      </div>
+      <div class="secthead">Beat</div>
+      <div class="beat" id="beat"></div>
+    </div>
+  </div>
+<script>
+  var W=document.getElementById('wave'); for(var i=0;i<90;i++){var b=document.createElement('i');var h=6+Math.abs(Math.sin(i*0.4)*Math.cos(i*0.13))*82+Math.random()*10;b.style.height=h+'%';W.appendChild(b);}
+  var names=['Pretty','Pluck','Bass','Bells','Keys','Lead','Wild'];
+  var V=document.getElementById('vibes'); names.forEach(function(n,i){var e=document.createElement('button');e.className='vibe'+(i===1?' on':'');e.textContent=n;V.appendChild(e);});
+  var B=document.getElementById('beat'); for(var j=0;j<16;j++){var c=document.createElement('i');if(j%4===0)c.className='b';if([0,3,4,7,8,12,14].indexOf(j)>=0)c.className='on';B.appendChild(c);}
+</script>
+</body></html>

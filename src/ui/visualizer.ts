@@ -2,8 +2,15 @@ import type { Contact } from "../types";
 import type { Sequencer } from "../audio/sequencer";
 import { params } from "../state";
 import { SCALES, NOTE_NAMES, degreeToMidi } from "../audio/scales";
+import { loopRgb } from "./loop-colors";
 
-interface Ripple { x: number; y: number; age: number; hue: number; }
+interface Ripple { x: number; y: number; age: number; light: number; rgb?: string }
+
+// a replayed loop note rides a contact id like "lp3_42" — pull the slot index for its color
+function loopOf(id: string): number | null {
+  const m = /^lp(\d+)_/.exec(id);
+  return m ? Number(m[1]) : null;
+}
 
 /** Draws the play surface: a live waveform across the back, and a glowing blob
  *  per active contact — bigger and brighter the harder you press. */
@@ -52,7 +59,7 @@ export class Visualizer {
     // beat pulse: the whole pad brightens on each downbeat
     this.updatePulse();
     if (this.pulse > 0.01) {
-      ctx.fillStyle = `rgba(110,168,255,${this.pulse * 0.08})`;
+      ctx.fillStyle = `rgba(255,255,255,${this.pulse * 0.06})`;
       ctx.fillRect(0, 0, w, h);
     }
 
@@ -61,7 +68,7 @@ export class Visualizer {
     // back waveform
     this.analyser.getByteTimeDomainData(this.wave);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(120,170,255,0.22)";
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
     ctx.beginPath();
     const n = this.wave.length;
     for (let i = 0; i < n; i++) {
@@ -75,23 +82,28 @@ export class Visualizer {
     this.spawnRipples(w, h);
     this.drawRipples(ctx);
 
-    // contacts
+    // contacts — replayed loop notes glow in their loop's color so you can SEE which layer is
+    // playing what; your own live touches stay white/grayscale.
     for (const c of this.contacts.values()) {
       const x = c.x * w;
       const y = c.y * h;
       const radius = 22 + c.pressure * 78;
-      const hue = 200 + c.x * 140;
-      const alpha = 0.18 + c.pressure * 0.6;
+      const light = 58 + c.x * 37; // grayscale: left = dimmer, right = brighter
+      const alpha = 0.2 + c.pressure * 0.6;
+      const loop = loopOf(c.id);
+      const rgb = loop !== null ? loopRgb(loop) : null;
 
       const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      g.addColorStop(0, `hsla(${hue}, 90%, 66%, ${alpha})`);
-      g.addColorStop(1, `hsla(${hue}, 90%, 66%, 0)`);
+      g.addColorStop(0, rgb ? `rgba(${rgb},${alpha})` : `hsla(0, 0%, ${light}%, ${alpha})`);
+      g.addColorStop(1, rgb ? `rgba(${rgb},0)` : `hsla(0, 0%, ${light}%, 0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = `hsla(${hue}, 95%, 78%, ${0.5 + c.pressure * 0.5})`;
+      ctx.strokeStyle = rgb
+        ? `rgba(${rgb},${0.65 + c.pressure * 0.35})`
+        : `hsla(0, 0%, ${Math.min(100, light + 14)}%, ${0.5 + c.pressure * 0.5})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x, y, 14 + c.pressure * 16, 0, Math.PI * 2);
@@ -115,12 +127,12 @@ export class Visualizer {
       const isRoot = pc === params.root;
 
       if (isRoot) {
-        ctx.fillStyle = "rgba(110,168,255,0.07)";
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
         ctx.fillRect(x0, 0, w / params.spread, h);
       }
       ctx.fillStyle = "rgba(255,255,255,0.045)";
       ctx.fillRect(x0, 0, 1, h);
-      ctx.fillStyle = isRoot ? "rgba(174,203,255,0.85)" : "rgba(255,255,255,0.22)";
+      ctx.fillStyle = isRoot ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.22)";
       ctx.fillText(NOTE_NAMES[pc], cx, h - 8);
     }
   }
@@ -137,7 +149,8 @@ export class Visualizer {
   private spawnRipples(w: number, h: number): void {
     for (const c of this.contacts.values()) {
       if (!this.prevIds.has(c.id)) {
-        this.ripples.push({ x: c.x * w, y: c.y * h, age: 0, hue: 200 + c.x * 140 });
+        const loop = loopOf(c.id);
+        this.ripples.push({ x: c.x * w, y: c.y * h, age: 0, light: 65 + c.x * 33, rgb: loop !== null ? loopRgb(loop) : undefined });
       }
     }
     this.prevIds.clear();
@@ -151,7 +164,7 @@ export class Visualizer {
       r.age += 1;
       const alpha = 0.5 - r.age * 0.022;
       if (alpha <= 0) { this.ripples.splice(i, 1); continue; }
-      ctx.strokeStyle = `hsla(${r.hue}, 90%, 72%, ${alpha})`;
+      ctx.strokeStyle = r.rgb ? `rgba(${r.rgb},${alpha})` : `hsla(0, 0%, ${r.light}%, ${alpha})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(r.x, r.y, 16 + r.age * 6, 0, Math.PI * 2);

@@ -1,17 +1,29 @@
 {
-  "name": "magic-trackpad-ulanzi-synth",
+  "name": "chum-1",
   "version": "0.1.0",
   "private": true,
-  "description": "Magic Trackpad 2 multitouch + pressure into a Web Audio synth & groovebox, with an Ulanzi dial for live control.",
+  "description": "CHUM-1 — a tactile, OP-1-inspired groovebox you play with three real devices: an Apple Magic Trackpad 2 (multi-instrument surface), an Ulanzi D100H dial, and an Elgato Stream Deck Pedal. Multi-instrument trackpad (Synth / Keys / Drums / Sample), a robust looper (record, overdub, mute, stack, half/double speed), and a reactive OP-1-style screen. Purity-Ring-leaning sound palette.",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --port 5174",
+    "preview": "vite preview --port 5175",
     "typecheck": "tsc --noEmit",
     "electron": "electron .",
-    "app": "npm run build && electron ."
+    "app": "dotnet build trackpad-bridge/TrackpadBridge.csproj -c Release -v quiet && npm run sync:plugin && npm run build && electron .",
+    "setup:trackpad": "dotnet build trackpad-bridge/TrackpadBridge.csproj -c Release",
+    "setup:plugin": "npm --prefix ulanzi-plugin/com.ulanzi.trackpadsynth.ulanziPlugin install",
+    "sync:plugin": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync-plugin.ps1",
+    "install:plugin": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-plugin.ps1",
+    "pack:plugin": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-plugin.ps1",
+    "setup:sd-plugin": "npm --prefix streamdeck-plugin/com.chum.chumthesizer.sdPlugin install",
+    "install:sd-plugin": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-sd-plugin.ps1",
+    "test:bridge": "node test/smoke-bridge.mjs",
+    "trackpad": "dotnet run --project trackpad-bridge -c Release",
+    "gestures:off": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/touchpad-gestures.ps1 off",
+    "gestures:on": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/touchpad-gestures.ps1 on",
+    "gestures:toggle": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/touchpad-gestures.ps1 toggle"
   },
   "devDependencies": {
     "@types/w3c-web-hid": "^1.0.6",

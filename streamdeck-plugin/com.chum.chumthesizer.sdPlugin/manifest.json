@@ -1,0 +1,40 @@
+{
+  "Name": "Chum Pedal",
+  "Author": "Welsh",
+  "Description": "Use an Elgato Stream Deck Pedal to play Chumthesizer: each of the 3 pedals fires a pad/trigger in the synth. Forwards presses to Chumthesizer over a localhost WebSocket so it works while the Stream Deck software owns the device.",
+  "Category": "Chumthesizer",
+  "CategoryIcon": "imgs/category",
+  "Icon": "imgs/plugin",
+  "URL": "https://github.com/",
+  "Version": "1.0.0.0",
+  "SDKVersion": 2,
+  "CodePath": "bin/plugin.js",
+  "Nodejs": {
+    "Version": "20"
+  },
+  "Software": {
+    "MinimumVersion": "6.5"
+  },
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "11" }
+  ],
+  "UUID": "com.chum.chumthesizer",
+  "Actions": [
+    {
+      "Name": "Chum Pedal",
+      "UUID": "com.chum.chumthesizer.pedal",
+      "Icon": "imgs/action",
+      "Tooltip": "Press to fire a pad/trigger in Chumthesizer. Put it on all 3 pedals.",
+      "PropertyInspectorPath": "property-inspector/pedal.html",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": false,
+      "States": [
+        {
+          "Image": "imgs/action",
+          "TitleAlignment": "middle"
+        }
+      ]
+    }
+  ]
+}

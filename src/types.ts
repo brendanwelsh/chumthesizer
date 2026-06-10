@@ -38,3 +38,11 @@ export interface DeviceStatus {
   label: string;
 }
 export type StatusCb = (s: DeviceStatus) => void;
+
+/** What the dial bridge drives: rotate = FX macro, press = play/stop, keys = sounds/pads.
+ *  Lives here (not in the old D200 dial.ts, now removed) so the bridge + main share one def. */
+export interface DialHandlers {
+  onRotate: (delta: number) => void;
+  onPress: () => void;
+  onButton: (index: number, pressed: boolean) => void;
+}

@@ -2,8 +2,19 @@ import type { SurfaceSink } from "../types";
 
 /** On-screen XY pad driven by Pointer Events. Works with mouse, touchscreen,
  *  and pen — multitouch and real stylus pressure come through for free. The
- *  Magic Trackpad path (trackpad.ts) feeds the same sink. */
-export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink): void {
+ *  Magic Trackpad path (trackpad-bridge.ts) feeds the same sink.
+ *
+ *  IMPORTANT: the Magic Trackpad is ALSO the system pointer, and the Precision-Touchpad driver
+ *  fires "touch"-type pointer events at the CURSOR position — which sits centered, not where your
+ *  finger is. That was the phantom note. So we ALWAYS ignore "touch" pointer events here (fingers
+ *  come through the helper bridge instead). A real "mouse" plays only when Mouse mode is on
+ *  (opts.mouseAllowed); pen/stylus is always allowed. */
+export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink, opts: { mouseAllowed?: () => boolean } = {}): void {
+  const mute = (e: PointerEvent): boolean =>
+    e.pointerType === "touch" ? true
+      : e.pointerType === "mouse" ? !opts.mouseAllowed?.()
+        : false;
+
   const norm = (e: PointerEvent) => {
     const r = canvas.getBoundingClientRect();
     return {
@@ -18,6 +29,7 @@ export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink): void {
     e.pointerType === "mouse" ? clamp01(0.25 + (1 - y) * 0.75) : clamp01(e.pressure > 0 ? e.pressure : 0.5);
 
   canvas.addEventListener("pointerdown", (e) => {
+    if (mute(e)) return; // the helper owns the trackpad while it's live
     canvas.setPointerCapture(e.pointerId);
     const { x, y } = norm(e);
     sink.start({ id: `pad:${e.pointerId}`, x, y, pressure: pressureFor(e, y) });
@@ -25,6 +37,7 @@ export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink): void {
 
   canvas.addEventListener("pointermove", (e) => {
     if (e.buttons === 0 && e.pointerType === "mouse") return;
+    if (mute(e)) return;
     const { x, y } = norm(e);
     sink.move({ id: `pad:${e.pointerId}`, x, y, pressure: pressureFor(e, y) });
   });
