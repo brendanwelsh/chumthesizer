@@ -4,14 +4,16 @@ import type { SurfaceSink } from "../types";
  *  and pen — multitouch and real stylus pressure come through for free. The
  *  Magic Trackpad path (trackpad-bridge.ts) feeds the same sink.
  *
- *  IMPORTANT: the Magic Trackpad is ALSO the system pointer, and the Precision-Touchpad driver
- *  fires "touch"-type pointer events at the CURSOR position — which sits centered, not where your
- *  finger is. That was the phantom note. So we ALWAYS ignore "touch" pointer events here (fingers
- *  come through the helper bridge instead). A real "mouse" plays only when Mouse mode is on
- *  (opts.mouseAllowed); pen/stylus is always allowed. */
-export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink, opts: { mouseAllowed?: () => boolean } = {}): void {
+ *  IMPORTANT: on Windows the Magic Trackpad is ALSO the system pointer, and the Precision-Touchpad
+ *  driver fires "touch"-type pointer events at the CURSOR position — which sits centered, not where
+ *  your finger is. That's a phantom note. So while the trackpad helper owns the device we ignore
+ *  "touch" events (real fingers come through the bridge instead) — opts.touchAllowed gates this.
+ *  On a real touchscreen (phone/tablet) there's no helper, so touch is allowed and gives genuine
+ *  multitouch — each finger is its own voice = chords. A real "mouse" plays only when Mouse mode is
+ *  on (opts.mouseAllowed); pen/stylus is always allowed. */
+export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink, opts: { mouseAllowed?: () => boolean; touchAllowed?: () => boolean } = {}): void {
   const mute = (e: PointerEvent): boolean =>
-    e.pointerType === "touch" ? true
+    e.pointerType === "touch" ? !(opts.touchAllowed?.() ?? true)
       : e.pointerType === "mouse" ? !opts.mouseAllowed?.()
         : false;
 
@@ -23,10 +25,12 @@ export function initPad(canvas: HTMLCanvasElement, sink: SurfaceSink, opts: { mo
     };
   };
 
-  // mouse/trackpad-as-cursor report no real pressure, so let vertical position
-  // be the dynamics axis (higher = louder/brighter). Pen & touch use real force.
+  // Most touchscreens report no usable force, so — like the mouse — vertical position is the
+  // dynamics axis (higher = louder/brighter), which also matches the on-pad loud/soft guide. A real
+  // pen/stylus DOES report force, so it keeps using it.
   const pressureFor = (e: PointerEvent, y: number) =>
-    e.pointerType === "mouse" ? clamp01(0.25 + (1 - y) * 0.75) : clamp01(e.pressure > 0 ? e.pressure : 0.5);
+    e.pointerType === "pen" ? clamp01(e.pressure > 0 ? e.pressure : 0.5)
+      : clamp01(0.25 + (1 - y) * 0.75);
 
   canvas.addEventListener("pointerdown", (e) => {
     if (mute(e)) return; // the helper owns the trackpad while it's live

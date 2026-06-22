@@ -178,7 +178,12 @@ let trackpadPlay = true;     // PLAY mode: the trackpad plays notes + the helper
                              // NAV mode (false): no notes + cursor freed, so the trackpad navigates the UI.
 const canvas = $("pad") as HTMLCanvasElement;
 const board = $("board");
-initPad(canvas, sink, { mouseAllowed: () => mouseMode });
+// touch plays the pad as a real instrument (multitouch → chords) UNLESS the Magic Trackpad helper
+// owns the device — its PTP driver fires phantom cursor-centred "touch" events. No helper running
+// (a phone / tablet / the plain web) = touch is the real input, so allow it.
+let trackpadConnected = false;
+const coarsePointer = window.matchMedia("(pointer: coarse)").matches;   // a touch-first device (phone / tablet)
+initPad(canvas, sink, { mouseAllowed: () => mouseMode, touchAllowed: () => !trackpadConnected });
 
 // ── keyboard dynamics: ↑/↓ set the vertical level keys play at (their substitute for the pad's
 // up=loud/down=soft axis). The on-pad tick marks it; melodic instruments show the whole guide. ──
@@ -217,7 +222,11 @@ const setDevStatus = (dev: "trackpad" | "dial" | "pedal", s: DeviceStatus): void
   settings?.setStatus(dev, s);
   const d = statusDots[dev];
   if (d) { d.className = "sdot mini" + (s.connected ? " on" : ""); d.title = `${dev[0].toUpperCase() + dev.slice(1)}: ${s.label}`; }
-  if (dev === "trackpad") tpNote.classList.toggle("show", !isElectron && !s.connected);
+  if (dev === "trackpad") {
+    trackpadConnected = s.connected;   // gates whether on-screen touch plays (helper present → mute the phantom touches)
+    // the "needs the desktop app" note is only for desktop-browser users; hide it on touch devices, where touch just works
+    tpNote.classList.toggle("show", !isElectron && !s.connected && !coarsePointer);
+  }
 };
 const devStatus = (dev: "trackpad" | "dial" | "pedal") => (s: DeviceStatus) => setDevStatus(dev, s);
 const tpBridge = initTrackpadBridge(sink, devStatus("trackpad"), { enabled: () => trackpadPlay });
@@ -845,6 +854,7 @@ let ctlSeq = 0;
   moveTo: (key: string, x: number, y: number, p = 0.8) => sink.move({ id: `ctl:${key}`, x, y, pressure: p }),
   release: (key: string) => sink.end(`ctl:${key}`),
   panic: () => panic(),
+  contacts: () => [...contacts.values()].map((c) => ({ id: c.id, x: c.x, y: c.y, p: c.pressure })),   // live voices (for multitouch tests)
   dice: () => dice(),
   state: () => ({ running, instrument: rack.active, perf, bpm: seq.bpm, sound: params.presetName, rec: looper.recordingSlot(), loops: Array.from({ length: looper.count }, (_, i) => looper.stateOf(i)), loopInsts: Array.from({ length: looper.count }, (_, i) => looper.instOf(i)) }),
 };
