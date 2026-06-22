@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $name = 'com.ulanzi.trackpadsynth.ulanziPlugin'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$pluginDir = Join-Path $root "ulanzi-plugin\$name"
+$pluginDir = Join-Path $root "plugins\ulanzi-plugin\$name"
 $distDir = Join-Path $root 'dist-plugin'
 $zip = Join-Path $distDir "$name.zip"
 

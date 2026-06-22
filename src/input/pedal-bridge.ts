@@ -3,7 +3,7 @@ import type { StatusCb } from "../types";
 /** Elgato Stream Deck Pedal over the Stream Deck plugin bridge.
  *
  *  When the Elgato Stream Deck software is running it owns the Pedal, so Chumthesizer can't read it
- *  directly over WebHID. Instead we run a tiny Stream Deck plugin (streamdeck-plugin/) that hosts
+ *  directly over WebHID. Instead we run a tiny Stream Deck plugin (plugins/streamdeck-plugin/) that hosts
  *  the device inside the Stream Deck software and re-broadcasts every pedal press/release over a
  *  localhost WebSocket. This client connects to that socket and drives `PedalHandlers`.
  *

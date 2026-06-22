@@ -184,7 +184,7 @@ eventual WinUSB pressure path; it can't work on Windows for the reason above.
 > for our hardware**. The actual device is a **Ulanzi D100H**, which behaves completely differently.
 > The full reverse-engineering lives in the sibling repo `../ulanzi-d100h-homebrew/`. What follows is
 > the decision and the evidence; `src/input/dial.ts` is kept but is **D200-only**, and the live path
-> is the **UlanziDeck plugin bridge** in `ulanzi-plugin/` + `src/input/dial-bridge.ts`.
+> is the **UlanziDeck plugin bridge** in `plugins/ulanzi-plugin/` + `src/input/dial-bridge.ts`.
 
 ### What the D100H actually is
 - Enumerates as **`KEHWIN / Dial_Lite`, VID `0xfff1` / PID `0x0082`** (the BLE-chipset identity) —
@@ -235,7 +235,7 @@ of ours runs** — exactly what Studio does. Of the candidate hosting paths:
 
 ### What we built (path a)
 ```
-Ulanzi D100H ──BLE──► Ulanzi Studio ──► UlanziDeck plugin (ulanzi-plugin/, Node + ws)
+Ulanzi D100H ──BLE──► Ulanzi Studio ──► UlanziDeck plugin (plugins/ulanzi-plugin/, Node + ws)
                                               │  WebSocketServer on ws://127.0.0.1:48907
                                               ▼
                           src/input/dial-bridge.ts (WebSocket client)
@@ -243,7 +243,7 @@ Ulanzi D100H ──BLE──► Ulanzi Studio ──► UlanziDeck plugin (ulanz
                                               ▼
                           engine.setPerformanceFilter / seq.toggle / beat.hit   (unchanged)
 ```
-- **`ulanzi-plugin/com.ulanzi.trackpadsynth.ulanziPlugin/`** — the plugin. `plugin/app.js` connects to
+- **`plugins/ulanzi-plugin/com.ulanzi.trackpadsynth.ulanziPlugin/`** — the plugin. `plugin/app.js` connects to
   Studio and runs a localhost WS server; `manifest.json` declares the Encoder + Keypad actions; the
   SDK (`ulanzi-api/`, `libs/`) and `ws` are vendored so it runs under Studio's bundled Node 20. Built
   from the same template as the author's working `ulanzi-camera-switcher` plugin.

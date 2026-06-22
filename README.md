@@ -84,13 +84,13 @@ playable with a mouse, computer keyboard, or touchscreen, and lights up as you c
   Noise); press = cycle that macro; the **7 keys are sound presets** — hold one for that sound, hold
   several to *blend* them into a new in‑between voice. It's an **endless encoder**, so the on‑screen
   knob spins freely in both directions — no stop. Bridged into the app via a UlanziDeck plugin
-  (`ulanzi-plugin/`) so all 7 keys work with no system volume/media side effects.
+  (`plugins/ulanzi-plugin/`) so all 7 keys work with no system volume/media side effects.
 
   <p align="center"><img src="docs/images/d100h-dial-demo.gif" height="170" alt="The D100H dial — knob spins, keys flash"></p>
 
 - **Stream Deck Pedal — hands‑free looping.** Left = **Rec** the next layer (auto‑advances, so it
   doubles as "next") · Middle = **Play/Stop** all · Right = **Undo** the last layer. Bridged via a
-  Stream Deck plugin (`streamdeck-plugin/`).
+  Stream Deck plugin (`plugins/streamdeck-plugin/`).
 
 > The deep reverse‑engineering of the D100H (why the plugin bridge is the only clean path to all 7
 > keys) lives in the companion repo, **[ulanzi-d100h-homebrew](https://github.com/brendanwelsh/ulanzi-d100h-homebrew)**.
@@ -176,8 +176,7 @@ src/
   main.ts        wires inputs → rack → looper → engine + the UI
 electron/main.cjs  desktop shell (HID blocklist disabled so WebHID can claim the trackpad)
 trackpad-bridge/   C# helper — raw HID pressure decode + cursor suppression
-ulanzi-plugin/     UlanziDeck plugin — bridges the D100H dial + 7 keys over a localhost WebSocket
-streamdeck-plugin/ Stream Deck plugin — bridges the foot pedal
+plugins/           UlanziDeck plugin (D100H dial + 7 keys) · Stream Deck plugin (foot pedal)
 ```
 
 More: **[DESIGN.md](DESIGN.md)** (rationale + the pressure decode) · **[BUILD.md](BUILD.md)** (run &

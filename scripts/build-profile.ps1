@@ -8,7 +8,7 @@
 param([string]$DialUuid = '')
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$pluginDir = Join-Path $root 'ulanzi-plugin\com.ulanzi.trackpadsynth.ulanziPlugin'
+$pluginDir = Join-Path $root 'plugins\ulanzi-plugin\com.ulanzi.trackpadsynth.ulanziPlugin'
 $pluginIcon = Join-Path $pluginDir 'resources\pluginIcon.png'
 $outDir = Join-Path $root 'profiles'
 

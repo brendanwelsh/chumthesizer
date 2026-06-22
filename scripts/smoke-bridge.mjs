@@ -11,7 +11,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PLUGIN_DIR = path.join(__dirname, "..", "ulanzi-plugin", "com.ulanzi.trackpadsynth.ulanziPlugin");
+const PLUGIN_DIR = path.join(__dirname, "..", "plugins", "ulanzi-plugin", "com.ulanzi.trackpadsynth.ulanziPlugin");
 const require = createRequire(import.meta.url);
 const { WebSocketServer, WebSocket } = require(path.join(PLUGIN_DIR, "node_modules", "ws"));
 

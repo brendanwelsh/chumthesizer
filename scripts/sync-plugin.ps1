@@ -4,7 +4,7 @@
 # A full quit + reopen of Ulanzi Studio loads the freshly-synced copy.
 $ErrorActionPreference = 'Continue'
 $name = 'com.ulanzi.trackpadsynth.ulanziPlugin'
-$src = Join-Path $PSScriptRoot "..\ulanzi-plugin\$name"
+$src = Join-Path $PSScriptRoot "..\plugins\ulanzi-plugin\$name"
 try { $src = (Resolve-Path $src).Path } catch { Write-Host "[plugin] source not found; skipping sync"; exit 0 }
 
 $pluginsRoot = Join-Path $env:APPDATA "Ulanzi\UlanziDeck\Plugins"

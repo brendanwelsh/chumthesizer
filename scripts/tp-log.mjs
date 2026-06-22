@@ -6,7 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const { WebSocket } = require(path.join(__dirname, "..", "ulanzi-plugin", "com.ulanzi.trackpadsynth.ulanziPlugin", "node_modules", "ws"));
+const { WebSocket } = require(path.join(__dirname, "..", "plugins", "ulanzi-plugin", "com.ulanzi.trackpadsynth.ulanziPlugin", "node_modules", "ws"));
 
 const ws = new WebSocket("ws://127.0.0.1:48808");
 let last = -1;

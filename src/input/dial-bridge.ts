@@ -4,7 +4,7 @@ import type { StatusCb, DialHandlers } from "../types";
  *
  *  The real hardware is a D100H, which can't be reprogrammed and whose 4 side keys ride the
  *  Keyboard HID collection that Windows blocks apps from reading (see DESIGN.md). So instead of
- *  reading raw HID, we run a tiny UlanziDeck plugin (ulanzi-plugin/) that consumes the device
+ *  reading raw HID, we run a tiny UlanziDeck plugin (plugins/ulanzi-plugin/) that consumes the device
  *  while Ulanzi Studio is running and re-broadcasts every dial + key event over a localhost
  *  WebSocket. This client connects to that socket and drives the SAME `DialHandlers` the raw-HID
  *  path used — so the engine/mapping in main.ts doesn't change.

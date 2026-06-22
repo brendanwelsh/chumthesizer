@@ -3,7 +3,7 @@
 #   npm run install:sd-plugin
 $ErrorActionPreference = 'Stop'
 $name = 'com.chum.chumthesizer.sdPlugin'
-$src = Join-Path $PSScriptRoot "..\streamdeck-plugin\$name"
+$src = Join-Path $PSScriptRoot "..\plugins\streamdeck-plugin\$name"
 $src = (Resolve-Path $src).Path
 $dest = Join-Path $env:APPDATA "Elgato\StreamDeck\Plugins\$name"
 

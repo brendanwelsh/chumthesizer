@@ -18,8 +18,8 @@ trackpad-bridge/bin/
 trackpad-bridge/obj/
 
 # plugin deps
-ulanzi-plugin/**/node_modules/
-streamdeck-plugin/**/node_modules/
+plugins/ulanzi-plugin/**/node_modules/
+plugins/streamdeck-plugin/**/node_modules/
 
 # local scratch (screenshots, logs, backups, throwaway drive sequences)
 _*.log
