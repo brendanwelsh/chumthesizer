@@ -29,7 +29,9 @@ export function initLegend(root: HTMLElement): Legend {
       ["0", "find-chords guide"],
     ]) +
     group("Play", [
-      ["A … ;   Q … P", "play notes (the active instrument)"],
+      ["A … ;   Q … P", "play notes — hold several at once for a chord"],
+      ["↑   ↓", "louder / softer (keyboard dynamics)"],
+      ["pad ↕", "drag up = loud/bright, down = soft/dark"],
       ["[   ]", "octave  −  /  +"],
       [",   .", "scale  −  /  +"],
       ["-   =", "key (root)  −  /  +"],

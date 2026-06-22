@@ -163,7 +163,23 @@ const mouseMode = true;      // a real mouse plays the pad (the default web expe
 let trackpadPlay = true;     // PLAY mode: the trackpad plays notes + the helper mutes the OS cursor.
                              // NAV mode (false): no notes + cursor freed, so the trackpad navigates the UI.
 const canvas = $("pad") as HTMLCanvasElement;
+const board = $("board");
 initPad(canvas, sink, { mouseAllowed: () => mouseMode });
+
+// ── keyboard dynamics: ↑/↓ set the vertical level keys play at (their substitute for the pad's
+// up=loud/down=soft axis). The on-pad tick marks it; melodic instruments show the whole guide. ──
+let kbdExpr = 0.62;           // 0 = soft/dark (bottom), 1 = loud/bright (top)
+const yaTick = document.getElementById("ya-tick");
+let exprTimer = 0;
+const positionTick = (): void => { if (yaTick) yaTick.style.top = `${(1 - kbdExpr) * 100}%`; };
+const setKbdExpr = (v: number): void => {
+  kbdExpr = clamp(v, 0, 1);
+  positionTick();
+  board.classList.add("expr-active");                          // briefly highlight the tick so the change is visible
+  window.clearTimeout(exprTimer);
+  exprTimer = window.setTimeout(() => board.classList.remove("expr-active"), 900);
+};
+positionTick();
 
 let settings: SettingsUI;    // forward decl (status callbacks can fire before it's built)
 // always-visible top-bar status dots (red = not connected, green = connected) for the 3 devices
@@ -335,9 +351,11 @@ rack.onActiveChange((id) => {
   tombola.setActive(id === "tombola");
   if (viz) viz.overlayPaint = id === "tombola" ? (ctx, w, h) => tombola.paint(ctx, w, h) : null;
   instSwitch.setActive(id); overlay.set(rack.overlay()); panel.setInstrument(id); panel.refresh(); saveState();
+  board.classList.toggle("yaxis-on", MELODIC.includes(id));   // the up=loud/down=soft guide is meaningful for melodic voices
 });
 instSwitch.setActive(rack.active);
 overlay.set(rack.overlay());
+board.classList.toggle("yaxis-on", MELODIC.includes(rack.active));
 
 // ── sound presets — 7 quick ones on the dial keys, the full library browsable in the panel ──
 const SOUND_NAMES = DIAL_SOUNDS; // 7 — one per dial key
@@ -697,7 +715,8 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (heldKbd.has(e.code)) return;
     heldKbd.add(e.code);
-    sink.start({ id: `kbd:${e.code}`, x: deg / MAXDEG, y: 0.45, pressure: 0.72 });
+    // play at the keyboard's expression level (↑/↓): high = loud/bright (top of the pad), low = soft/dark
+    sink.start({ id: `kbd:${e.code}`, x: deg / MAXDEG, y: 1 - kbdExpr, pressure: 0.18 + kbdExpr * 0.8 });
     return;
   }
 
@@ -727,6 +746,8 @@ window.addEventListener("keydown", (e) => {
     case "Minus": params.root = (params.root + 11) % 12; panel.refresh(); saveState(); break;     // key −
     case "Equal": params.root = (params.root + 1) % 12; panel.refresh(); saveState(); break;       // key +
     case "Quote": cloneLoop(); break;                                       // clone the focused loop into the next empty slot
+    case "ArrowUp": e.preventDefault(); setKbdExpr(kbdExpr + 0.12); break;   // keyboard dynamics: louder / brighter
+    case "ArrowDown": e.preventDefault(); setKbdExpr(kbdExpr - 0.12); break; // keyboard dynamics: softer / darker
     case "Digit9": e.preventDefault(); gridView.toggle(); break;            // grid / multi view (also the grid button)
     case "Digit0": e.preventDefault(); toggleChords(); break;               // find-chords guide
     case "F10": e.preventDefault(); setPlayMode(!trackpadPlay); break;      // PLAY <-> NAV (free the mouse)

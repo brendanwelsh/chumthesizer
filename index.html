@@ -66,8 +66,15 @@
           <div id="board" class="board">
             <canvas id="pad"></canvas>
             <div id="overlay" class="overlay" aria-hidden="true"><!-- piano / drum grid / arena --></div>
+            <!-- vertical = dynamics: top is loud/bright, bottom is soft/dark (shown for melodic
+                 instruments). The tick marks the keyboard's expression level (move it with ↑/↓). -->
+            <div id="yaxis" class="yaxis" aria-hidden="true">
+              <span class="ya-lab">loud</span>
+              <span class="ya-track"><i id="ya-tick" class="ya-tick"></i></span>
+              <span class="ya-lab">soft</span>
+            </div>
             <div id="tank" class="tank" aria-hidden="true"><pre id="shark"></pre></div>
-            <div id="hint" class="hint"><span class="hint-big">Play.</span> pick an instrument above · tap a loop to record a layer</div>
+            <div id="hint" class="hint"><span class="hint-big">Play.</span> drag up = loud · down = soft · pick an instrument above · tap a loop to record</div>
           </div>
           <span class="devlabel">Apple Magic Trackpad 2</span>
         </section>

@@ -31,10 +31,13 @@ Bindings are ignored while typing in a text field/dropdown.
 ## Play (notes)
 | Key | Action |
 | --- | --- |
-| `A S D F G H J K L ;` + `Q W E R T Y U I O P` | Play scale degrees on the active instrument |
+| `A S D F G H J K L ;` + `Q W E R T Y U I O P` | Play scale degrees on the active instrument — **hold several at once for a chord** |
+| `↑` / `↓` | Keyboard dynamics — louder/brighter / softer/darker (the keys' substitute for the pad's vertical axis; the on‑pad tick shows the level) |
 | `[` / `]` | Octave − / + |
 | `,` / `.` | Scale − / + |
 | `-` / `=` | Key (root) − / + |
+
+> **Vertical = dynamics.** On the pad, a mouse/touch has no Force‑Touch pressure, so **vertical position is the dynamics axis**: drag toward the top for loud/bright, the bottom for soft/dark (shown as a faint guide for melodic instruments).
 
 ## Knob (dial)
 | Key | Action |
