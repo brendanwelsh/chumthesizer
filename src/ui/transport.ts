@@ -19,15 +19,15 @@ export function initTransport(
 
   const run = document.createElement("button");
   run.className = "tbtn run";
-  const setRunGlyph = (b: boolean) => { run.innerHTML = `${b ? STOP : PLAY}<span>${b ? "Stop" : "Play"}</span>`; run.classList.toggle("on", b); };
+  const setRunGlyph = (b: boolean) => { run.innerHTML = `${b ? STOP : PLAY}<span>${b ? "Stop" : "Play"}</span><kbd class="tkey">Spc</kbd>`; run.classList.toggle("on", b); };
   setRunGlyph(o.running);
-  run.title = "Play / stop the groove + loops (Enter)";
+  run.title = "Play / stop the groove + loops (Space / Enter)";
   run.onclick = o.onRun;
 
   const rec = document.createElement("button");
   rec.className = "tbtn rec";
-  rec.innerHTML = `${REC}<span>Rec</span>`;
-  rec.title = "Record the next loop layer (R) — tap a loop slot or use 1–6 to pick the slot";
+  rec.innerHTML = `${REC}<span>Rec</span><kbd class="tkey">\`</kbd>`;
+  rec.title = "Record the next loop layer (\`) — or tap a loop slot / press 1–6";
   rec.onclick = o.onRec;
 
   const tempo = document.createElement("label");

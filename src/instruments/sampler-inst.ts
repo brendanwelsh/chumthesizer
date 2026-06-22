@@ -13,10 +13,11 @@ export class SamplerInstrument implements Instrument {
   down(id: string, x: number, y: number, pressure: number): void {
     if (!this.sampler.hasSample()) return;
     this.active.add(id);
-    this.sampler.play(id, x, y, pressure);
+    if (this.sampler.slices > 0) this.sampler.playSlice(id, Math.floor(x * this.sampler.slices), pressure);
+    else this.sampler.play(id, x, y, pressure);   // pitched across X
   }
   move(id: string, x: number, y: number, pressure: number): void {
-    this.sampler.update(id, x, y, pressure);
+    if (this.sampler.slices <= 0) this.sampler.update(id, x, y, pressure);   // slices are struck, no slide
   }
   up(id: string): void {
     this.active.delete(id);
@@ -27,6 +28,8 @@ export class SamplerInstrument implements Instrument {
     this.active.clear();
   }
   overlay(): Overlay {
-    return { kind: "none" };
+    const n = this.sampler.slices;
+    if (n > 0) return { kind: "grid", cols: n, rows: 1, labels: Array.from({ length: n }, (_, i) => String(i + 1)) };
+    return { kind: "wave" };   // un-sliced: a faint waveform baseline (distinct from synth's ribbon)
   }
 }

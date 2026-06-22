@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen } = require("electron");
+const { app, BrowserWindow, screen, desktopCapturer } = require("electron");
 const path = require("node:path");
 const { spawn, execFileSync } = require("node:child_process");
 
@@ -57,6 +57,17 @@ function createWindow() {
   ses.setPermissionCheckHandler((_wc, permission) => allowed(permission));
   ses.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed(permission)));
   ses.setDevicePermissionHandler((details) => details.deviceType === "hid");
+
+  // Desktop-audio sampling: when the renderer calls getDisplayMedia (the "Sample desktop audio"
+  // button), grant a screen source with LOOPBACK audio so the sampler can grab whatever is playing
+  // on the system (Spotify, a browser tab, etc.). The renderer keeps only the audio track.
+  try {
+    ses.setDisplayMediaRequestHandler((_request, callback) => {
+      desktopCapturer.getSources({ types: ["screen"] })
+        .then((sources) => callback({ video: sources[0], audio: "loopback" }))
+        .catch(() => callback({}));
+    });
+  } catch (e) { /* older Electron — desktop-audio sampling just won't be offered */ }
   ses.on("select-hid-device", (event, details, callback) => {
     event.preventDefault();
     const list = details.deviceList || [];

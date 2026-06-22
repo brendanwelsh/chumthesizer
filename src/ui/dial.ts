@@ -11,14 +11,20 @@
  *  Relative URLs ("./…") — Electron loads the build over file://. */
 
 export interface DialWidget {
-  setFx(v: number): void;            // spin the knob to match the FX macro (-1..1)
-  press(index: number): void;        // light a key white (physical press)
+  setFx(v: number): void;            // set the FX macro value (-1..1) + glow (rotation is via spin())
+  spin(deltaDeg: number): void;      // turn the knob by a delta — UNBOUNDED, it never stops (endless encoder)
+  setMode(label: string): void;      // show what the knob is currently controlling (push to cycle)
+  setLoopColor(rgb: string | null): void;   // ring the dial in the colour of the loop currently looping/recording
+  press(index: number): void;        // light a key white (transient flash)
+  hold(index: number, on: boolean): void;   // latch a key lit while it's held down (released = off)
+  pressColor(index: number, rgb: string): void; // light a key in a loop's colour (replayed press)
   setLabels(labels: string[]): void; // show what each key does, next to the key
   learn(slot: number | null): void;  // calibration: highlight the key to press next (null = off)
 }
 
 export interface DialOpts {
-  onButton: (i: number) => void;
+  onButton: (i: number) => void;     // a key was pressed
+  onButtonUp?: (i: number) => void;  // a key was released (for hold-to-blend)
   onPress: () => void;               // knob click = play / stop
   onFx: (v: number) => void;         // knob drag = FX macro (-1..1)
 }
@@ -93,7 +99,13 @@ export function initDial(root: HTMLElement, opts: DialOpts): DialWidget {
     b.style.top = `${k.cy}%`;
     b.style.width = `${k.w}%`;
     b.style.height = `${k.h}%`;
-    b.onclick = () => { opts.onButton(i); flash(i); };
+    // press-and-HOLD: fire on pointerdown and LATCH the key lit (so holding one — or several — at
+    // once shows every held key); release un-lights it. "button pressed = button lit, that simple."
+    const lift = (): void => { opts.onButtonUp?.(i); whites[i]?.classList.remove("held"); };
+    b.addEventListener("pointerdown", (e) => { e.preventDefault(); opts.onButton(i); whites[i]?.classList.add("held"); });
+    b.addEventListener("pointerup", lift);
+    b.addEventListener("pointerleave", lift);
+    b.addEventListener("pointercancel", lift);
     keyEls.push(b);
     device.append(b);
 
@@ -112,26 +124,46 @@ export function initDial(root: HTMLElement, opts: DialOpts): DialWidget {
 
   root.append(device);
 
+  // a plain-language caption + a live MODE badge (press the knob to cycle what the knob controls)
+  const caption = document.createElement("div");
+  caption.className = "dial-caption";
+  const modeBadge = document.createElement("span");
+  modeBadge.className = "dial-mode";
+  modeBadge.textContent = "Filter";
+  const capText = document.createElement("span");
+  capText.innerHTML = ` · <b>press</b> = next mode · <b>keys</b> = sounds`;
+  caption.append(document.createTextNode("turn = "), modeBadge, capText);
+  root.append(caption);
+
+  // The D100H is an *endless* rotary encoder — it has no stop. So the on-screen knob spins freely in
+  // both directions forever: rotation is an UNBOUNDED accumulator (spinDeg), decoupled from the
+  // bounded FX-macro value (fx, -1..1, which still drives the audio filter).
   let fx = 0;
+  let spinDeg = 0;
   let spinT: number | undefined;
-  const renderFx = (): void => {
-    knob.style.transform = `translate(-50%, -50%) rotate(${fx * 150}deg)`; // -1..1 -> -150°..150°
+  const glow = (): void => {
     knob.classList.add("spin"); // glow while turning
     if (spinT) clearTimeout(spinT);
     spinT = window.setTimeout(() => knob.classList.remove("spin"), 220);
   };
+  const spin = (deltaDeg: number): void => {
+    spinDeg += deltaDeg;
+    knob.style.transform = `translate(-50%, -50%) rotate(${spinDeg}deg)`;
+    glow();
+  };
   knob.style.transform = "translate(-50%, -50%)";
 
-  // drag = FX; tap (no drag) = play/stop
-  let dragging = false, startY = 0, startV = 0;
+  // drag = spin the knob freely (both ways, never stops) + sweep the bounded FX for audio; tap = play/stop
+  let dragging = false, startY = 0, lastY = 0;
   knob.addEventListener("pointerdown", (e) => {
-    dragging = true; startY = e.clientY; startV = fx;
+    dragging = true; startY = lastY = e.clientY;
     knob.setPointerCapture(e.pointerId); e.preventDefault();
   });
   knob.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    fx = clamp(startV + (startY - e.clientY) / 130);
-    renderFx(); opts.onFx(fx);
+    const dy = lastY - e.clientY; lastY = e.clientY;
+    spin(dy * 1.4);                          // keeps turning past the filter's min/max — no stopping point
+    fx = clamp(fx + dy / 130); opts.onFx(fx);
   });
   const endDrag = (e: PointerEvent): void => {
     if (!dragging) return;
@@ -141,11 +173,27 @@ export function initDial(root: HTMLElement, opts: DialOpts): DialWidget {
   };
   knob.addEventListener("pointerup", endDrag);
   knob.addEventListener("pointercancel", endDrag);
-  knob.addEventListener("dblclick", () => { fx = 0; renderFx(); opts.onFx(0); });
+  knob.addEventListener("dblclick", () => { fx = 0; opts.onFx(0); });   // reset the audio; the knob keeps its angle
 
   return {
-    setFx(v: number) { fx = clamp(v); renderFx(); },
+    setFx(v: number) { fx = clamp(v); glow(); },   // value + glow only; rotation comes from spin()
+    spin,
+    setMode(label: string) { modeBadge.textContent = label; },
+    setLoopColor(rgb: string | null) {
+      if (rgb) { root.style.setProperty("--loop-color", `rgb(${rgb})`); root.classList.add("looping"); }
+      else root.classList.remove("looping");
+    },
     press(i: number) { flash(i); },
+    hold(i: number, on: boolean) { whites[i]?.classList.toggle("held", on); },
+    pressColor(i: number, rgb: string) {
+      flash(i);
+      const k = keyEls[i];
+      if (!k) return;
+      k.style.background = `rgba(${rgb},0.5)`;
+      k.style.boxShadow = `0 0 16px rgba(${rgb},0.85)`;
+      k.style.borderRadius = "8px";
+      window.setTimeout(() => { k.style.background = ""; k.style.boxShadow = ""; }, 240);
+    },
     setLabels(labels: string[]) { labelEls.forEach((el, i) => { el.textContent = labels[i] ?? ""; }); },
     learn(slot: number | null) {
       root.classList.toggle("learn", slot !== null);

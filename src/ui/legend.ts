@@ -16,30 +16,44 @@ export function initLegend(root: HTMLElement): Legend {
     rows.map(([k, w, t]) => `<div class="lg-row"><span class="lg-key"${t ? ` style="--k:${t}"` : ""}>${k}</span><span class="lg-what">${w}</span></div>`).join("") +
     `</div>`;
 
-  const loopKeys = Array.from({ length: 6 }, (_, i) => `<span class="lg-key" style="--k:${loopColor(i)}">${i + 1}</span>`).join("");
+  const loopKeys = Array.from({ length: 8 }, (_, i) => `<span class="lg-key" style="--k:${loopColor(i)}">${i + 1}</span>`).join("");
 
   root.innerHTML =
     `<div class="lg-card">` +
-    `<div class="lg-head"><span class="lg-title">Keys</span><span class="lg-hint">press / to close</span></div>` +
+    `<div class="lg-head"><span class="lg-title">chumthesizer — keys</span><span class="lg-hint">press / to close</span></div>` +
     `<div class="lg-cols">` +
+    group("Instruments", [
+      ["F1 … F9", "Synth Keys Bass Guitar Pluck Pad FM Drums Sample", "var(--accent)"],
+      ["Tab  ⇧Tab", "cycle instruments (Tombola = Tab)"],
+      ["9", "grid view — all instruments at once"],
+      ["0", "find-chords guide"],
+    ]) +
     group("Play", [
-      ["A … ;  Q … P", "play notes (the active instrument)"],
-      ["Tab  ⇧Tab", "next / prev instrument"],
-      ["[   ]", "octave down / up"],
+      ["A … ;   Q … P", "play notes (the active instrument)"],
+      ["[   ]", "octave  −  /  +"],
+      [",   .", "scale  −  /  +"],
+      ["-   =", "key (root)  −  /  +"],
     ]) +
     group("Loops", [
-      [loopKeys, "record → play → mute that loop"],
+      [loopKeys, "record → play → mute  (+ jump to its instrument)"],
       ["⇧ 1–6", "clear that loop"],
-      ["⌫", "undo — clear the last loop"],
+      ["`", "record the next empty loop", "var(--rec)"],
+      ["Del", "clear the last loop"],
+      ["'", "clone the focused loop"],
     ]) +
     group("Transport", [
       ["Space", "play / stop", "var(--accent)"],
-      ["`", "record the next loop", "var(--rec)"],
       ["X", "dice — re-roll sound + groove", "var(--warn)"],
-    ]) +
-    group("FX", [
-      ["Z   C", "filter sweep  −  /  +", "var(--accent)"],
       ["Backspace", "panic — all notes off", "var(--rec)"],
+    ]) +
+    group("Knob (dial)", [
+      ["Z   C", "filter sweep  −  /  +", "var(--accent)"],
+      ["hold V / B / N / M", "+ knob = reverb · bright · noise · mod"],
+      ["dial keys", "sound presets — lit while held, hold several to blend"],
+    ]) +
+    group("Whimsy", [
+      ["\\", "tape-stop — hold to grind to a halt", "var(--warn)"],
+      ["jaws", "type it — shark feeding frenzy"],
     ]) +
     `</div></div>`;
 

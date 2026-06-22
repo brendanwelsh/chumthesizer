@@ -20,6 +20,8 @@ export class Engine {
   private vibrato: GainNode;
   private voices = new Map<string, Voice>();
   private chordKeys = new Map<string, string[]>();
+  /** a tap of the full processed output, for recording the audio into a video export. */
+  readonly recordStream: MediaStream;
 
   constructor() {
     const ctx = new AudioContext({ latencyHint: "interactive" });
@@ -88,6 +90,11 @@ export class Engine {
 
     // master -> DJ filter -> drive -> limiter -> analyser -> out
     this.master.connect(this.perfHP).connect(this.perfLP).connect(this.perfDrive).connect(limiter).connect(this.analyser).connect(ctx.destination);
+
+    // a parallel tap of the final output for the video-export recorder (no audible effect)
+    const recordDest = ctx.createMediaStreamDestination();
+    this.analyser.connect(recordDest);
+    this.recordStream = recordDest.stream;
 
     // shared vibrato LFO -> detune (cents)
     const lfo = ctx.createOscillator();
@@ -206,6 +213,24 @@ export class Engine {
     for (const v of this.voices.values()) v.setBrightness(b);
   }
 
+  /** A metronome click — a short blip post-everything (so the DJ filter never mutes it). */
+  click(time: number, accent: boolean): void {
+    const o = this.ctx.createOscillator();
+    o.frequency.value = accent ? 1900 : 1250;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(accent ? 0.32 : 0.18, time);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + 0.045);
+    o.connect(g).connect(this.analyser);
+    o.start(time);
+    o.stop(time + 0.06);
+  }
+
+  /** Push the CURRENT timbre params into every held voice, so changing the sound (dial keys, knob,
+   *  sliders) reshapes the notes you're holding on the trackpad in real time — not just the next one. */
+  updateLiveTimbre(): void {
+    for (const v of this.voices.values()) v.applyLive();
+  }
+
   /** Dial / on-screen knob — a wild performance macro. amount -1 = muffled, screaming
    *  lowpass; 0 = open + clean; +1 = thin, whistling highpass. Resonance and drive both
    *  ramp up toward the extremes so cranking it genuinely goes nuts (jam-sesh knob). */
@@ -213,9 +238,11 @@ export class Engine {
     const a = Math.max(-1, Math.min(1, amount));
     const t = this.ctx.currentTime;
     const mag = Math.abs(a);
-    const reso = 0.7 + mag * 6; // resonant DJ sweep, kept below the self-oscillating drone
+    // a clean DJ-style sweep: gentle resonance (no loud resonant peak), no saturation. Sweeping
+    // CLOSES the sound (lowpass left / highpass right) — it should get thinner, never louder.
+    const reso = 0.7 + mag * 1.4;
     if (a < 0) {
-      const lp = 90 * Math.pow(20000 / 90, 1 + a); // a:-1->90Hz, 0->20kHz
+      const lp = 110 * Math.pow(20000 / 110, 1 + a); // a:-1->110Hz, 0->20kHz
       this.perfLP.frequency.setTargetAtTime(lp, t, 0.02);
       this.perfHP.frequency.setTargetAtTime(20, t, 0.02);
       this.perfLP.Q.setTargetAtTime(reso, t, 0.02);
@@ -227,8 +254,8 @@ export class Engine {
       this.perfHP.Q.setTargetAtTime(reso, t, 0.02);
       this.perfLP.Q.setTargetAtTime(0.7, t, 0.02);
     }
-    // crank grit/saturation toward the extremes
-    this.perfDrive.curve = makeDriveCurve(mag * 0.85);
+    // keep it clean — only a whisper of grit at the very extremes (was the loudness culprit)
+    this.perfDrive.curve = makeDriveCurve(mag * mag * 0.18);
   }
 
   /** Push the current params object into the live graph. */

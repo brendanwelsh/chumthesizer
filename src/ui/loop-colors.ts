@@ -7,6 +7,8 @@ export const LOOP_COLORS = [
   "#f0a23c", // orange
   "#b06cff", // purple
   "#ffd23c", // yellow
+  "#ff6b6b", // coral
+  "#5ad1c8", // teal
 ];
 
 export function loopColor(i: number): string {

@@ -5,6 +5,7 @@ import { SCALES, NOTE_NAMES, degreeToMidi } from "../audio/scales";
 import { loopRgb } from "./loop-colors";
 
 interface Ripple { x: number; y: number; age: number; light: number; rgb?: string }
+interface LoopPulse { x: number; y: number; age: number; rgb: string; p: number }
 
 // a replayed loop note rides a contact id like "lp3_42" — pull the slot index for its color
 function loopOf(id: string): number | null {
@@ -19,14 +20,29 @@ export class Visualizer {
   private wave = new Uint8Array(0);
   private prevIds = new Set<string>();
   private ripples: Ripple[] = [];
+  private loopPulses: LoopPulse[] = [];
   private lastStep = -1;
   private pulse = 0;
+
+  /** "Find chords" mode — draw a guide from each finger to the nearest in-scale triad. */
+  chordFind: () => boolean = () => false;
+  melodicActive: () => boolean = () => false;
+  /** an instrument can draw its own overlay on the surface (e.g. the Tombola arena + balls). */
+  overlayPaint: ((ctx: CanvasRenderingContext2D, w: number, h: number) => void) | null = null;
+
+  /** Every loop hit (any instrument) pops a coloured pulse on the surface so you SEE all the
+   *  layers playing at once — a drum loop still shows while you're playing Synth. (x,y are 0..1.) */
+  loopHit(loop: number, x: number, y: number, p: number): void {
+    this.loopPulses.push({ x, y, age: 0, rgb: loopRgb(loop), p });
+    if (this.loopPulses.length > 80) this.loopPulses.splice(0, this.loopPulses.length - 80);
+  }
 
   constructor(
     private canvas: HTMLCanvasElement,
     private analyser: AnalyserNode,
     private contacts: Map<string, Contact>,
     private seq: Sequencer,
+    private recSlot: () => number = () => -1,   // the loop being recorded → live touches glow in its colour
   ) {
     this.ctx = canvas.getContext("2d")!;
     this.wave = new Uint8Array(analyser.fftSize);
@@ -82,6 +98,15 @@ export class Visualizer {
     this.spawnRipples(w, h);
     this.drawRipples(ctx);
 
+    // loop-layer pulses — every layer's hits, in its loop colour, even when its instrument is idle
+    this.drawLoopPulses(ctx, w, h);
+
+    // "find chords" — a guide from each live finger to the nearest triad
+    if (this.chordFind() && this.melodicActive()) this.drawChordGuide(ctx, w, h);
+
+    // an instrument's own surface art (Tombola arena + bouncing note-balls)
+    this.overlayPaint?.(ctx, w, h);
+
     // contacts — replayed loop notes glow in their loop's color so you can SEE which layer is
     // playing what; your own live touches stay white/grayscale.
     for (const c of this.contacts.values()) {
@@ -91,7 +116,9 @@ export class Visualizer {
       const light = 58 + c.x * 37; // grayscale: left = dimmer, right = brighter
       const alpha = 0.2 + c.pressure * 0.6;
       const loop = loopOf(c.id);
-      const rgb = loop !== null ? loopRgb(loop) : null;
+      // replayed layer → its loop colour; a LIVE touch while recording → the armed loop's colour
+      const rec = this.recSlot();
+      const rgb = loop !== null ? loopRgb(loop) : rec >= 0 ? loopRgb(rec) : null;
 
       const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
       g.addColorStop(0, rgb ? `rgba(${rgb},${alpha})` : `hsla(0, 0%, ${light}%, ${alpha})`);
@@ -137,6 +164,44 @@ export class Visualizer {
     }
   }
 
+  /** For each live finger, snap to the nearest scale degree and draw the triad it implies
+   *  (root + third + fifth) with a dashed line from the finger to the chord root. */
+  private drawChordGuide(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+    const spread = Math.max(1, params.spread);
+    const midY = h * 0.5;
+    // persistent: a small badge + faint chord-root dots so you can SEE the mode is on, untouched
+    ctx.save();
+    ctx.font = "700 10px Inter, system-ui, sans-serif"; ctx.textAlign = "left";
+    ctx.fillStyle = "rgba(25,182,216,0.85)";
+    ctx.fillText("◇ CHORDS", 10, 18);
+    for (let d = 0; d < spread; d += 2) {
+      const cx = ((d + 0.5) / spread) * w;
+      ctx.fillStyle = "rgba(25,182,216,0.22)";
+      ctx.beginPath(); ctx.arc(cx, midY, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    for (const c of this.contacts.values()) {
+      if (/^lp\d+_/.test(c.id)) continue;             // live fingers only
+      const root = Math.max(0, Math.min(spread - 1, Math.round(c.x * (spread - 1))));
+      const fx = c.x * w, fy = c.y * h;
+      const rootX = ((root + 0.5) / spread) * w;
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = "rgba(25,182,216,0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(rootX, midY); ctx.stroke();
+      ctx.setLineDash([]);
+      for (const interval of [0, 2, 4]) {             // triad: root, third, fifth (in scale degrees)
+        const d = root + interval;
+        if (d >= spread) continue;
+        const cx = ((d + 0.5) / spread) * w;
+        ctx.fillStyle = interval === 0 ? "rgba(25,182,216,0.95)" : "rgba(25,182,216,0.5)";
+        ctx.beginPath(); ctx.arc(cx, midY, interval === 0 ? 6 : 4.5, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   private updatePulse(): void {
     const step = this.seq.visualStep();
     if (step !== this.lastStep) {
@@ -150,12 +215,36 @@ export class Visualizer {
     for (const c of this.contacts.values()) {
       if (!this.prevIds.has(c.id)) {
         const loop = loopOf(c.id);
-        this.ripples.push({ x: c.x * w, y: c.y * h, age: 0, light: 65 + c.x * 33, rgb: loop !== null ? loopRgb(loop) : undefined });
+        const rec = this.recSlot();
+        const rgb = loop !== null ? loopRgb(loop) : rec >= 0 ? loopRgb(rec) : undefined;
+        this.ripples.push({ x: c.x * w, y: c.y * h, age: 0, light: 65 + c.x * 33, rgb });
       }
     }
     this.prevIds.clear();
     for (const c of this.contacts.values()) this.prevIds.add(c.id);
     if (this.ripples.length > 120) this.ripples.splice(0, this.ripples.length - 120);
+  }
+
+  private drawLoopPulses(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+    for (let i = this.loopPulses.length - 1; i >= 0; i--) {
+      const lp = this.loopPulses[i];
+      lp.age += 1;
+      const t = lp.age / 26;            // life ~26 frames
+      if (t >= 1) { this.loopPulses.splice(i, 1); continue; }
+      const x = lp.x * w, y = lp.y * h;
+      const base = 20 + lp.p * 60;
+      // soft colored blob, fading
+      const a = (1 - t) * (0.35 + lp.p * 0.4);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, base);
+      g.addColorStop(0, `rgba(${lp.rgb},${a})`);
+      g.addColorStop(1, `rgba(${lp.rgb},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, base, 0, Math.PI * 2); ctx.fill();
+      // expanding ring
+      ctx.strokeStyle = `rgba(${lp.rgb},${(1 - t) * 0.7})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 12 + t * 46, 0, Math.PI * 2); ctx.stroke();
+    }
   }
 
   private drawRipples(ctx: CanvasRenderingContext2D): void {

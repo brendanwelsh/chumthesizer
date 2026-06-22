@@ -6,8 +6,9 @@ import { loopColor } from "./loop-colors";
  *  per-loop record shortcut. Motion thesis: a recording slot pulses red, a playing slot
  *  fills with a sweeping accent playhead — the chassis is still, the light moves. */
 const SPEED_LABEL: Record<number, string> = { 0.5: "½×", 1: "1×", 2: "2×" };
+const INST_NAMES: Record<string, string> = { synth: "Synth", keys: "Keys", bass: "Bass", guitar: "Guitar", pluck: "Pluck", pad: "Pad", fm: "FM", drums: "Drums", sampler: "Sample", tombola: "Tombola", organ: "Organ", strings: "Strings", arp: "Arp", brass: "Brass" };
 
-export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: number) => string): void {
+export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: number) => string, onPress?: (i: number) => void): void {
   root.innerHTML = "";
   const slots: HTMLButtonElement[] = [];
 
@@ -16,11 +17,11 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
     b.className = "loop empty";
     b.style.setProperty("--lc", loopColor(i));
     b.innerHTML =
-      `<div class="loop-top"><span class="loop-num">${i + 1}</span><span class="loop-key">${keyHint(i)}</span></div>` +
+      `<div class="loop-top"><span class="loop-num">${i + 1}</span><span class="loop-inst"></span><span class="loop-key">${keyHint(i)}</span></div>` +
       `<span class="loop-state">empty</span>` +
       `<span class="loop-spd">1×</span>`;
-    b.title = `Loop ${i + 1} — tap to record, tap again to play/mute. Click the speed badge for ½×/2×. Right-click to clear.`;
-    b.onclick = () => looper.toggle(i);
+    b.title = `Loop ${i + 1} — tap to record / play / mute and jump to its instrument. Speed badge = ½×/2×. Right-click to clear.`;
+    b.onclick = () => (onPress ? onPress(i) : looper.toggle(i));
     b.oncontextmenu = (e) => { e.preventDefault(); looper.clear(i); };
 
     const spd = b.querySelector(".loop-spd") as HTMLElement;
@@ -35,6 +36,8 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
     b.className = "loop " + s;
     (b.querySelector(".loop-state") as HTMLElement).textContent = s;
     (b.querySelector(".loop-spd") as HTMLElement).textContent = SPEED_LABEL[looper.speedOf(i)] ?? `${looper.speedOf(i)}×`;
+    const inst = looper.instOf(i);
+    (b.querySelector(".loop-inst") as HTMLElement).textContent = inst ? INST_NAMES[inst] ?? inst : "";
   };
   looper.onSlotChange(paint);
 

@@ -26,7 +26,7 @@
   /* spacing scale */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 22px; --s6: 30px;
   /* board height — the hero size; one source of truth, clamped to the window */
-  --board-h: clamp(180px, min(44vh, 34vw), 400px);
+  --board-h: clamp(240px, 46vh, 500px);
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -57,7 +57,7 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 /* ── app shell: a 3-row stack that reflows, never clips ──────────────────── */
 #app {
   display: grid;
-  grid-template-rows: 52px minmax(0, 1fr) auto;
+  grid-template-rows: 52px minmax(0, 1fr) auto;   /* topbar · workspace (hero) · LOOP CONTROL (bottom) */
   height: 100vh;
   gap: var(--s3);
   padding: var(--s3) var(--s4) var(--s4);
@@ -66,10 +66,11 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 
 /* ── top bar ─────────────────────────────────────────────────────────────── */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
-.brand { display: flex; align-items: center; gap: var(--s2); min-width: 150px; }
-.logo { height: 26px; width: auto; display: block; opacity: 0.95; }
-.mark { font-weight: 700; font-size: 17px; letter-spacing: 0.06em; }
-.mark .dot1 { color: var(--accent); padding: 0 1px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 230px; }
+.logo { height: 38px; width: auto; display: block; opacity: 1; cursor: pointer; transition: transform .12s; }
+.logo:hover { transform: scale(1.06) rotate(-4deg); }
+.mark { font-weight: 800; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); font-family: "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif; }
+.mark-accent { color: var(--accent); }
 
 .iconbtn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -78,6 +79,13 @@ select option { background: #1b1b1b; color: #f4f4f4; }
   cursor: pointer; transition: color .15s, border-color .15s, background .15s;
 }
 .iconbtn:hover { color: var(--ink); border-color: var(--line-2); background: var(--bg3); }
+.iconbtn.rec-on { color: #fff; background: var(--rec); border-color: var(--rec); animation: blink .9s steps(1) infinite; }
+/* big, no-mouse-friendly mode buttons */
+.modebtn { display: inline-flex; align-items: center; height: 34px; padding: 0 13px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg2); color: var(--ink); font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.modebtn:hover { background: var(--bg3); }
+.modebtn.on { background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: var(--accent); color: var(--accent); }
+#playmode { background: color-mix(in srgb, var(--ok) 18%, var(--bg2)); border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); color: color-mix(in srgb, var(--ok) 55%, var(--ink)); }
+#playmode.nav { background: color-mix(in srgb, var(--warn) 22%, var(--bg2)); border-color: var(--warn); color: color-mix(in srgb, var(--warn) 65%, var(--ink)); }
 .top-tools { display: flex; align-items: center; gap: var(--s2); }
 
 /* ── reactive screen (the OP-1 LCD) — center of the top bar ──────────────── */
@@ -103,32 +111,55 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 @keyframes blink { 50% { opacity: 0.3; } }
 .scr-bpm { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* ── stage: dial · trackpad(hero) · pedal, side by side ──────────────────── */
-.stage {
+/* ── workspace: knob · trackpad(hero) · config — SYMMETRICAL (equal side columns) ──────── */
+.workspace {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));   /* three EQUAL devices side by side */
-  align-items: center; justify-items: center;
-  gap: var(--s4); min-height: 0; padding: 0 var(--s4);
+  grid-template-columns: var(--side) minmax(0, 1fr) var(--side);   /* equal flanks → trackpad dead-centre */
+  gap: var(--s5); min-height: 0; align-items: center; justify-items: center;
+  padding: 0 var(--s2);
 }
-.device { display: flex; flex-direction: column; align-items: center; gap: var(--s2); min-width: 0; width: 100%; max-width: 300px; }
-/* the dial is square so it reads biggest at equal width — cap it a touch smaller for a balanced row */
-.dial-col { max-width: 230px; }
-.pedal-col { max-width: 320px; }
-.devlabel { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); text-align: center; }
-.devlabel .sub { color: rgba(255,255,255,0.22); font-weight: 500; }
+:root { --side: clamp(280px, 25vw, 380px); }
 
-/* all three columns equal; reorder is done via the `order` property in JS */
-.dial-col, .pedal-col, .surface-col { width: 100%; }
+/* each device FLOATS on the page — no card box; just the hardware + its drop-shadow. */
+.device {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s3);
+  min-width: 0; width: 100%; overflow: visible;
+  border-radius: 18px;
+}
+/* the trackpad is the HERO — the biggest part of the app, scales with the window */
+.surface-col { max-width: min(100%, calc(var(--board-h) * 1.4)); }
+/* the knob sits in the left flank, centred (its outboard labels have room on both sides) */
+.dial-col { width: 100%; max-width: 230px; }
+.dial-col .dial { max-width: 84%; margin: 0 auto; }
+.devlabel { display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); text-align: center;
+  padding: 3px 9px; border-radius: 7px; transition: background .12s, color .12s; }
+/* the controller labels double as drag HANDLES (grab to swap dial ↔ pedal) */
+.devlabel[draggable="true"] { cursor: grab; }
+.devlabel[draggable="true"]:hover { color: var(--ink); background: var(--bg1); }
+.devlabel[draggable="true"]:active { cursor: grabbing; }
+.devlabel[draggable="true"]::before { content: "⠿"; font-size: 12px; letter-spacing: 0; color: var(--muted-2); opacity: 0.7; }
+/* plain-language caption under the dial — demystifies the knob + sound keys */
+.dial-caption { font-size: 9px; color: var(--muted-2); text-align: center; margin-top: 4px; line-height: 1.6; max-width: 200px; }
+.dial-caption b { color: var(--muted); font-weight: 700; }
+.dial-mode { display: inline-block; padding: 1px 6px; border-radius: 5px; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); font-weight: 800; font-size: 9px; letter-spacing: 0.04em; }
+/* the knob rings in the colour of the loop currently looping/recording */
+.dial.looping .dial-knob { box-shadow: 0 0 0 3px var(--loop-color, var(--accent)), 0 0 18px var(--loop-color, var(--accent)); border-radius: 50%; }
 
 /* ── trackpad surface — the hero ─────────────────────────────────────────── */
-.inst-switch { display: flex; gap: var(--s1); padding: 3px; border-radius: 12px; background: var(--bg1); border: 1px solid var(--line); }
+/* the 15 voices as a 5×3 grid above the trackpad — same order + shape as the grid view */
+.inst-switch { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s1); padding: 4px; border-radius: 12px; background: var(--bg1); border: 1px solid var(--line); width: 100%; }
 .inst-tab {
+  display: inline-flex; align-items: center; justify-content: center; gap: 3px; width: 100%;
   border: 0; background: transparent; color: var(--muted);
-  padding: 6px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em;
+  padding: 6px 6px; border-radius: 9px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
   cursor: pointer; transition: color .14s, background .14s;
 }
 .inst-tab:hover { color: var(--ink); }
 .inst-tab.on { color: #ffffff; background: var(--ink); box-shadow: var(--shadow-1); }
+.inst-tab.on .tkey { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.22); }
+.inst-tab.rec { color: #fff; background: var(--rec); animation: blink .8s steps(1) infinite; }
+.inst-tab.rec.on .tkey, .inst-tab.rec .tkey { color: #ff7a70; }
 .inst-tab[disabled] { opacity: 0.4; cursor: default; }
 
 .board {
@@ -138,30 +169,89 @@ select option { background: #1b1b1b; color: #f4f4f4; }
   border-radius: 24px; overflow: hidden;
   background: linear-gradient(180deg, #3a3a3d 0%, #29292b 24%, #1f1f21 100%);
   border: 2px solid rgba(214, 216, 222, 0.5);
-  box-shadow: inset 0 2px 10px rgba(255,255,255,0.06), inset 0 -10px 26px rgba(0,0,0,0.45), 0 18px 40px rgba(0,0,0,0.5);
+  box-shadow: inset 0 2px 10px rgba(255,255,255,0.06), inset 0 -10px 26px rgba(0,0,0,0.45), 0 24px 40px rgba(24,28,48,0.28), 0 5px 10px rgba(24,28,48,0.16);
   touch-action: none;
 }
-#pad { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* the canvas (finger contacts + waveform) sits ABOVE the guide overlay, so your fingerprints
+   show ON TOP of the piano/drum/strings keys — only the shark (z3) floats over everything. */
+#pad { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 2; }
 
-/* surface guide overlays (key columns / drum grid) — drawn by ui/overlay.ts */
-.overlay { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+/* surface guide overlays — a DISTINCT guide per instrument, kept faint + dark (a backdrop behind
+   your fingerprints + the shark). z-index 1 = below the canvas (z2) and the shark (z3). */
+.overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.62; }
+/* generic line guides (organ drawbars · pad bands · arp steps · pluck columns) */
+.overlay .g-lines, .overlay .g-ribbon, .overlay .g-lattice, .overlay .g-valves, .overlay .g-wave { position: absolute; inset: 0; }
+.overlay .g-line { position: absolute; background: rgba(255,255,255,0.10); border-radius: 2px; }
+.overlay .g-line.h { left: 6%; right: 6%; transform: translateY(-50%); }
+.overlay .g-line.v { top: 8%; bottom: 8%; transform: translateX(-50%); }
+/* synth ribbon: faint centre line + degree ticks */
+.overlay .g-ribbon-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(255,255,255,0.10); }
+.overlay .g-ribbon-tick { position: absolute; top: 42%; height: 16%; width: 1px; background: rgba(255,255,255,0.07); }
+/* fm lattice: faint cross grid */
+.overlay .g-lat { position: absolute; background: rgba(255,255,255,0.06); }
+.overlay .g-lat.v { top: 0; bottom: 0; width: 1px; }
+.overlay .g-lat.h { left: 0; right: 0; height: 1px; }
+/* brass valves: three faint circles */
+.overlay .g-valve { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 13%; aspect-ratio: 1; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.12); }
+/* sampler wave: a faint baseline */
+.overlay .g-wave { background: linear-gradient(180deg, transparent 48%, rgba(255,255,255,0.08) 50%, transparent 52%); }
+/* guitar / bass strings */
+.overlay .strings { position: absolute; inset: 0; }
+.overlay .gstring { position: absolute; left: 0; right: 0; transform: translateY(-50%); border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.42), rgba(255,255,255,0.12));
+  box-shadow: 0 0 5px rgba(255,255,255,0.25); }
+.overlay .gfret { position: absolute; top: 6%; bottom: 6%; width: 1px; background: rgba(255,255,255,0.09); }
+.overlay .gfret:nth-child(odd) { background: rgba(255,255,255,0.05); }
 .overlay .kcol { position: absolute; top: 0; bottom: 0; border-left: 1px solid rgba(255,255,255,0.06); }
 .overlay .kcol.root { border-left-color: rgba(90,200,230,0.35); }
 .overlay .kcell-lab { position: absolute; bottom: 6px; font-size: 9px; color: rgba(255,255,255,0.28); transform: translateX(-50%); }
 .overlay .dcell { position: absolute; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 .overlay .dcell .dl { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; color: rgba(255,255,255,0.4); text-transform: uppercase; }
 .overlay .dcell.flash { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.5); }
+/* loop-coloured flash — a replayed layer lights the cell in its loop colour (see all layers) */
+.overlay .dcell.flash-loop, .overlay .pkey.flash-loop { background: color-mix(in srgb, var(--fc) 38%, transparent); border-color: var(--fc); box-shadow: 0 0 14px color-mix(in srgb, var(--fc) 55%, transparent); }
 
-/* the shark tank — a faint ASCII shark cruising inside the board, chasing the cursor */
-.tank { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+/* ── piano keyboard overlay (KEYS) ───────────────────────────────────────── */
+.overlay.piano-mode { padding: 0; }
+.overlay .piano { position: absolute; inset: 0; display: flex; }
+.overlay .pkey { position: relative; }
+.overlay .pkey.white {
+  flex: 1 1 0; min-width: 0; height: 100%;
+  border-left: 1px solid rgba(0,0,0,0.35);
+  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.07) 72%, rgba(255,255,255,0.13) 100%);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.overlay .pkey.white:first-child { border-left: 0; }
+.overlay .pkey.white .pl { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.34); padding-bottom: 7px; }
+.overlay .pkey.white.flash { background: rgba(255,255,255,0.32); }
+/* held keys/cells stay LIT while a finger is on them (pressed = lit) */
+.overlay .pkey.white.held { background: rgba(120,200,255,0.6); box-shadow: inset 0 0 12px rgba(120,200,255,0.5); }
+.overlay .dcell.held { background: rgba(120,200,255,0.4); border-color: rgba(120,200,255,0.8); }
+/* black keys sit ON the white keys: flush to the top, centred on the white-key seams, clearly 3D */
+.overlay .pkey.black {
+  position: absolute; top: 0; height: 62%;
+  transform: translateX(-50%); border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #0c0d11 0%, #20222a 78%, #34373f 100%);
+  box-shadow: 0 4px 7px rgba(0,0,0,0.55), inset 0 -2px 2px rgba(255,255,255,0.12);
+  z-index: 4;
+}
+
+/* the shark tank — ON TOP of the guides (the shark is the star); dances when the beat plays */
+.tank { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
 #shark {
   position: absolute; margin: 0;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: clamp(3.5px, 0.7vw, 6px); line-height: 0.92; white-space: pre;
-  color: #ffffff; opacity: 0.26; text-shadow: 0 0 8px rgba(255,255,255,0.16);
-  transition: opacity .8s ease; will-change: left, top;
+  color: #ffffff; opacity: 0.42; text-shadow: 0 0 8px rgba(255,255,255,0.22);
+  transition: opacity .8s ease; will-change: left, top, transform;
 }
-.tank.frenzy #shark { opacity: 0.5; }
+.tank.frenzy #shark { opacity: 0.6; }
+/* easter egg: click the logo 5× — the shark escapes the board and swims the whole app */
+body.shark-loose #tank { position: fixed; inset: 0; z-index: 95; }
+body.shark-loose #shark { color: #1b1c22; opacity: 0.5; text-shadow: 0 0 12px rgba(25,182,216,0.35); }
+/* a little bob on every downbeat — the shark dances */
+.tank.beat #shark { animation: sharkBeat .18s ease; }
+@keyframes sharkBeat { 0% { transform: translateY(0) scale(1); } 40% { transform: translateY(-6px) scale(1.06); } 100% { transform: translateY(0) scale(1); } }
 
 .hint {
   position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
@@ -175,19 +265,20 @@ body.started .hint { opacity: 0; }
 .dial-slot { width: 100%; }
 .dial { display: flex; flex-direction: column; align-items: center; width: 100%; }
 .dial-device { position: relative; width: 100%; line-height: 0; }
-.dial-img { width: 100%; height: auto; display: block; -webkit-user-drag: none; filter: drop-shadow(0 14px 24px rgba(0,0,0,0.5)); }
+.dial-img { width: 100%; height: auto; display: block; -webkit-user-drag: none; filter: drop-shadow(0 22px 34px rgba(24,28,48,0.30)) drop-shadow(0 4px 8px rgba(24,28,48,0.16)); }
 .dwhite { position: absolute; inset: 0; width: 100%; height: auto; display: block; opacity: 0; pointer-events: none; filter: drop-shadow(0 0 8px rgba(255,255,255,0.7)); transition: opacity .04s ease; }
-.dwhite.on { opacity: 1; }
+.dwhite.on, .dwhite.held { opacity: 1; }
 .dial-knob { position: absolute; transform: translate(-50%, -50%); transform-origin: 50% 50%; cursor: ns-resize; -webkit-user-drag: none; border-radius: 50%; transition: filter .2s; }
 .dial-knob:hover { filter: brightness(1.1); }
 .dial-knob.spin { filter: brightness(1.3) drop-shadow(0 0 12px rgba(255,255,255,0.8)); }
 .dkey { position: absolute; transform: translate(-50%, -50%); background: transparent; border: none; padding: 0; cursor: pointer; border-radius: 10px; }
 .dkey:hover { background: rgba(255,255,255,0.06); }
+/* dial key labels — identical chip styling to the pedal's .plabel (one consistent look) */
 .dkey-label {
-  position: absolute; font-size: 9px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.2;
-  color: var(--ink); background: rgba(255,255,255,0.06); padding: 2px 5px; border-radius: 5px;
-  pointer-events: none; white-space: nowrap; border: 1px solid var(--line);
-  max-width: 64px; overflow: hidden; text-overflow: ellipsis;
+  position: absolute; font-size: 9.5px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.2;
+  color: var(--ink); background: var(--bg2); padding: 2px 6px; border-radius: 6px;
+  pointer-events: none; white-space: nowrap; border: 1px solid var(--line); box-shadow: var(--shadow-1);
+  max-width: 68px; overflow: hidden; text-overflow: ellipsis;
 }
 .dkey-label.top { transform: translate(-50%, -125%); }
 .dkey-label.left { transform: translate(-108%, -50%); }
@@ -199,7 +290,7 @@ body.started .hint { opacity: 0; }
 /* ── on-screen Elgato pedal (reused gamepadviewer widget) ────────────────── */
 .pedal-slot { width: 100%; }
 .pedal-device { position: relative; width: 100%; line-height: 0; }
-.pedal-img { width: 100%; height: auto; display: block; -webkit-user-drag: none; filter: drop-shadow(0 12px 20px rgba(0,0,0,0.5)); }
+.pedal-img { width: 100%; height: auto; display: block; -webkit-user-drag: none; filter: drop-shadow(0 22px 34px rgba(24,28,48,0.30)) drop-shadow(0 4px 8px rgba(24,28,48,0.16)); }
 .pwhite { position: absolute; inset: 0; width: 100%; height: auto; display: block; opacity: 0; pointer-events: none; filter: drop-shadow(0 0 9px rgba(255,255,255,0.7)); transition: opacity .05s ease; }
 .pwhite.on { opacity: 1; }
 /* labels sit ABOVE each pedal (same treatment as the dial's key labels) — a light chip */
@@ -210,11 +301,17 @@ body.started .hint { opacity: 0; }
   pointer-events: none; white-space: nowrap; border: 1px solid var(--line); box-shadow: var(--shadow-1);
 }
 
-/* ── deck: transport · loop tape · context panel ─────────────────────────── */
-.deck { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "transport loops" "panel panel"; gap: var(--s3) var(--s4); align-items: start; }
-.transport { grid-area: transport; display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
-.loops { grid-area: loops; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s2); }
-.panel { grid-area: panel; min-width: 0; }
+/* ── LOOP CONTROL row: transport · loop tape · foot pedal (grouped: this drives the looper) ── */
+.tape { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3) var(--s4); align-items: center; }
+.transport { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.loops { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--s2); }
+/* the pedal is the loop foot-controller — small, grouped with the tape, not a hero element */
+.tape .pedal-col { width: 132px; gap: 2px; }
+.tape .pedal-col .devlabel { font-size: 8px; padding: 1px 5px; }
+
+/* ── config: the instrument-specific panel — to the RIGHT of the trackpad ── */
+.config { min-width: 0; min-height: 0; overflow-y: auto; }
+.panel { min-width: 0; height: 100%; }
 
 .tbtn {
   display: inline-flex; align-items: center; gap: 7px;
@@ -226,6 +323,9 @@ body.started .hint { opacity: 0; }
 .tbtn.on { background: var(--ink); color: #ffffff; border-color: var(--ink); }
 .tbtn.rec.on { background: rgba(255,69,58,0.16); color: #ff7a70; border-color: var(--rec); }
 .tbtn .gly { width: 11px; height: 11px; display: inline-block; }
+.tkey { font-family: ui-monospace, Consolas, monospace; font-size: 9px; font-weight: 700; color: var(--muted-2); background: var(--bg1); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 3px; }
+.tbtn.on .tkey { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.22); }
+.tbtn.rec.on .tkey { color: #ff7a70; }
 .tempo { display: inline-flex; align-items: center; gap: var(--s2); color: var(--muted); font-size: 12px; padding-left: var(--s2); }
 .tempo input[type=range] { width: 120px; accent-color: var(--accent); }
 .tempo .bpm { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 30px; font-weight: 600; }
@@ -234,14 +334,17 @@ body.started .hint { opacity: 0; }
 .loop {
   position: relative; overflow: hidden;
   display: flex; flex-direction: column; gap: 3px;
-  border: 1px solid var(--line); background: var(--bg1); color: var(--ink);
-  border-radius: 12px; padding: 9px 10px; cursor: pointer; min-height: 60px;
+  border: 1px solid var(--line); border-top: 3px solid var(--lc); background: var(--bg1); color: var(--ink);
+  border-radius: 12px; padding: 8px 10px 9px; cursor: pointer; min-height: 58px;
   transition: border-color .12s, background .12s, transform .06s;
 }
+/* each slot is PRE-coloured 1–6 so its colour = the colour your fingerprints glow while recording it */
+.loop .loop-num { color: var(--lc); }
 .loop:hover { border-color: var(--line-2); }
 .loop:active { transform: translateY(1px); }
-.loop-top { display: flex; align-items: center; justify-content: space-between; }
+.loop-top { display: flex; align-items: center; gap: 6px; }
 .loop-num { font-size: 12px; font-weight: 700; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.loop-inst { font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: color-mix(in srgb, var(--lc) 78%, var(--ink)); margin-right: auto; }
 .loop-key { font-size: 9px; font-family: ui-monospace, Consolas, monospace; color: var(--muted-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 .loop-state { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .loop-spd { position: absolute; right: 8px; bottom: 7px; font-size: 9.5px; font-weight: 700; color: var(--muted-2); font-variant-numeric: tabular-nums; }
@@ -262,6 +365,7 @@ body.started .hint { opacity: 0; }
 .ptab { border: 1px solid var(--line); background: var(--bg1); color: var(--muted); border-radius: 999px; padding: 5px 14px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: color .14s, border-color .14s; }
 .ptab:hover { color: var(--ink); border-color: var(--line-2); }
 .ptab.on { color: var(--ink); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.ptab.gone { display: none; }   /* Drums/Sample tabs hide unless that instrument is active */
 .panel-body { border: 1px solid var(--line); background: var(--bg1); border-radius: 14px; padding: var(--s3) var(--s4); min-height: 64px; }
 .panel-body.hidden, .panel.collapsed .panel-body { display: none; }
 
@@ -272,6 +376,9 @@ body.started .hint { opacity: 0; }
 .ctl select { background: var(--bg2); border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
 .ctl.check { flex-direction: row; align-items: center; gap: 8px; }
 .ctl input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* sampler waveform */
+.wave { width: 100%; height: 58px; display: block; margin: var(--s2) 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2); }
 
 /* step sequencer (DRUMS panel) */
 .pads { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--s2); margin-bottom: var(--s2); }
@@ -285,7 +392,8 @@ body.started .hint { opacity: 0; }
 .cell { height: 13px; border-radius: 4px; background: var(--bg2); border: 1px solid var(--line); cursor: pointer; }
 .cell.q { background: var(--bg3); }
 .cell.on { background: var(--ink); border-color: var(--ink); }
-.cell.head { outline: 2px solid rgba(255,255,255,0.5); }
+.cell.head { outline: 2px solid rgba(20,22,30,0.45); }
+.cell.off-len { opacity: 0.28; }   /* steps past the chosen 4 / 8 / 16 length */
 
 /* ── settings sheet ──────────────────────────────────────────────────────── */
 .sheet { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; background: rgba(8,8,9,0.6); backdrop-filter: blur(4px); }
@@ -302,10 +410,84 @@ body.started .hint { opacity: 0; }
 .sdot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--rec); background: var(--rec); }
 .sdot.on { background: var(--ok); border-color: var(--ok); }
 .sdot.warn { background: var(--warn); border-color: var(--warn); }
+.dev-status { display: flex; align-items: center; gap: 5px; padding: 0 2px; }
+.sdot.mini { width: 9px; height: 9px; }
 .sstatus { font-size: 11px; color: var(--muted); }
 .sbtn { border: 1px solid var(--line-2); background: var(--bg3); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .sbtn:hover { background: var(--bg1); }
 .sbtn.danger { border-color: rgba(255,69,58,0.5); color: #ff8a80; }
+
+/* ── grid / multi view — every instrument playing at once ────────────────── */
+/* leaves the top settings bar uncovered, so you can record/switch/save while watching the grid */
+.grid-view { position: fixed; top: 60px; left: 0; right: 0; bottom: 0; z-index: 70; display: none; flex-direction: column; gap: var(--s4); background: radial-gradient(900px 600px at 50% -10%, var(--bg3), var(--bg0) 70%); padding: var(--s3) var(--s5) var(--s5); }
+.grid-view.open { display: flex; }
+
+/* header — back · title block · live beat · hint */
+.gv-head { display: flex; align-items: center; gap: var(--s4); }
+.gv-back { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg2); color: var(--ink); font-size: 13px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.gv-back:hover { background: var(--bg3); border-color: var(--accent); color: var(--accent); }
+.gv-titlewrap { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.gv-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.gv-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+.gv-hint { font-size: 11px; color: var(--muted-2); white-space: nowrap; }
+
+/* live beat indicator — four quarter-note dots, the current one lit */
+.gv-beat { display: flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg2); box-shadow: var(--shadow-1); }
+.gv-beat-dot { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 0 0 0 1px var(--line); transition: background .08s, box-shadow .08s, transform .08s; }
+.gv-beat-dot.on { background: var(--accent); box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 80%, transparent); transform: scale(1.18); }
+.gv-beat-dot.down.on { background: #19e3ff; box-shadow: 0 0 12px rgba(25,227,255,0.9); transform: scale(1.32); }
+
+/* board — every instrument, one organized grid (columns set in JS via --cols) */
+.gv-board { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols, 7), minmax(0, 1fr)); grid-auto-rows: max-content; align-content: center; gap: var(--s3); }
+
+/* each cell IS a mini Magic Trackpad — so it's WIDE (landscape), the same chassis + proportions as
+   the hero .board, never a tall portrait sliver. */
+.gv-cell {
+  position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 7 / 5;
+
+  background: linear-gradient(180deg, #3a3a3d 0%, #29292b 24%, #1f1f21 100%);
+  border: 1.5px solid rgba(214,216,222,0.42);
+  box-shadow: inset 0 2px 8px rgba(255,255,255,0.05), inset 0 -8px 20px rgba(0,0,0,0.42), var(--shadow-1);
+  transform-origin: center; will-change: transform;
+  transition: border-color .18s, box-shadow .18s;
+}
+/* idle aliveness — a soft glow that breathes, phase-offset per cell (set via --i) so the board
+   ripples gently instead of blinking in unison. Opacity only → never fights the beat-scale pulse. */
+.gv-cell::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(circle at 50% 62%, rgba(255,255,255,0.12), transparent 68%);
+  opacity: 0.28; animation: gvBreathe 3.6s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.22s);
+}
+@keyframes gvBreathe { 50% { opacity: 0.5; } }
+.gv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; }
+/* the mini shark — same character as the hero, sized way down to swim a small panel */
+.gv-shark {
+  position: absolute; margin: 0; z-index: 2;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: clamp(1.5px, 0.34vw, 2.6px); line-height: 0.9; white-space: pre;
+  color: #ffffff; opacity: 0.4; text-shadow: 0 0 5px rgba(255,255,255,0.22);
+  pointer-events: none; will-change: left, top;
+}
+.gv-cell.lit .gv-shark { opacity: 0.6; }   /* a sounding board's shark is a touch brighter */
+
+/* a contact is touching this instrument right now → a quick accent inset */
+.gv-cell.hot { border-color: rgba(255,255,255,0.4); box-shadow: inset 0 0 0 2px var(--accent), 0 10px 26px rgba(24,28,48,0.26); }
+/* a loop is sounding on this instrument → ring it in that loop's colour, and tint the breathe glow */
+.gv-cell.lit { border-color: rgb(var(--gc)); box-shadow: 0 0 0 1.5px rgba(var(--gc),0.85), 0 0 22px rgba(var(--gc),0.45); }
+.gv-cell.lit::before { background: radial-gradient(circle at 50% 62%, rgba(var(--gc),0.42), transparent 70%); opacity: 0.55; }
+/* the live instrument (what the trackpad is playing) → a steady accent frame */
+.gv-cell.active { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent), 0 12px 30px rgba(24,28,48,0.3); }
+
+.gv-label { position: absolute; left: 12px; top: 10px; z-index: 3; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.6); pointer-events: none; }
+/* status dot, top-right — loop colour when looping, accent when it's the live instrument */
+.gv-pill { position: absolute; right: 11px; top: 11px; z-index: 3; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.14); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); transition: background .15s, box-shadow .15s; }
+.gv-cell.lit .gv-pill { background: rgb(var(--gc)); box-shadow: 0 0 8px rgba(var(--gc),0.85); }
+.gv-cell.active .gv-pill { background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 85%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gv-cell::before { animation: none; }
+}
 
 /* F2 debug */
 #tpdebug { position: fixed; right: 12px; bottom: 12px; z-index: 60; font: 11px ui-monospace, Consolas, monospace; color: #9effd0; background: rgba(0,0,0,0.78); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; white-space: pre; pointer-events: none; display: none; }

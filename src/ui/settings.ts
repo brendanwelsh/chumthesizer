@@ -87,6 +87,26 @@ export function initSettings(
   mright.append(mstat, mbtn);
   mrow.append(mleft, mright); mg.append(mrow);
 
+  // mic INPUT device picker (up to 16s clips). Labels appear after the first mic permission.
+  const inRow = document.createElement("div"); inRow.className = "srow";
+  const inLeft = document.createElement("div"); inLeft.className = "sname"; inLeft.append(Object.assign(document.createElement("span"), { textContent: "Input" }));
+  const inSel = document.createElement("select"); inSel.className = "ctl"; inSel.style.maxWidth = "230px";
+  inSel.onchange = () => { o.sampler.inputDeviceId = inSel.value || null; };
+  const fillInputs = async (): Promise<void> => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter((d) => d.kind === "audioinput");
+      const cur = inSel.value;
+      inSel.innerHTML = "";
+      inSel.append(new Option("System default", ""));
+      mics.forEach((d, i) => inSel.append(new Option(d.label || `Microphone ${i + 1}`, d.deviceId)));
+      inSel.value = o.sampler.inputDeviceId ?? cur ?? "";
+    } catch { /* ignore */ }
+  };
+  void fillInputs();
+  try { navigator.mediaDevices.addEventListener("devicechange", () => void fillInputs()); } catch { /* ignore */ }
+  inRow.append(inLeft, inSel); mg.append(inRow);
+
   // ── MIDI OUT ──
   const midig = group("MIDI out");
   const midirow = document.createElement("div"); midirow.className = "srow";

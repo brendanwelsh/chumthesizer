@@ -100,12 +100,11 @@ export function initTrackpadBridge(sink: SurfaceSink, status: StatusCb, opts: { 
       const x = clamp01(p.x);
       const y = clamp01(p.y);
       const s = p.s; // real contact size (undefined → Y-position dynamics, unchanged)
-      // The Apple PTP helper emits GHOST contacts pinned to the EDGES (one coord ~0 or ~1)
-      // alongside the real finger, which is always INTERIOR and moving — confirmed by the raw
-      // helper log: one finger reported 2–5 contacts, every extra on an edge like (1.0, 0.10),
-      // (0.03, 1.0), (0.43, 1.0). Drop anything touching an edge; the only cost is the extreme
-      // pitch/dynamics rim, which kills the phantom notes for good.
-      const EDGE = 0.045;
+      // The Apple PTP helper emits GHOST contacts pinned to the EXTREME rim (one coord ~0 or ~1)
+      // alongside the real finger — e.g. (1.0, 0.10), (0.03, 1.0), (0.43, 1.0). Those all sit at
+      // ~0.0/~1.0 on one axis, so a tight rim filter kills them while letting you play almost all
+      // the way to the edges (was 0.045 — that ate a wide, usable border).
+      const EDGE = 0.02;
       if (x < EDGE || x > 1 - EDGE || y < EDGE || y > 1 - EDGE) continue;
 
       // 1) does it continue an already-playing voice? (nearest unused within threshold)

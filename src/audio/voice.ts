@@ -13,12 +13,16 @@ export class Voice {
   private osc1: OscillatorNode;
   private osc2: OscillatorNode;
   private sub: OscillatorNode;
-  private fmOsc: OscillatorNode | null = null;
-  private noiseSrc: AudioBufferSourceNode | null = null;
+  private fmOsc!: OscillatorNode;     // always present (depth can be 0) so FM can be dialed in mid-note
+  private fmDepth!: GainNode;
+  private noiseSrc!: AudioBufferSourceNode;
+  private noiseGain!: GainNode;
+  private subGain!: GainNode;
   private filter: BiquadFilterNode;
   private amp: GainNode;
   private panner: StereoPannerNode;
   private vibScale: GainNode;
+  private hz: number;                 // current base frequency (for live FM-depth recompute)
   private released = false;
 
   // live expression state, folded together into filter cutoff
@@ -36,6 +40,7 @@ export class Voice {
     vibrato: AudioNode,
   ) {
     this.ctx = ctx;
+    this.hz = freq;
     const t = ctx.currentTime;
 
     this.filter = ctx.createBiquadFilter();
@@ -77,45 +82,39 @@ export class Voice {
     this.vibScale.connect(this.osc1.detune);
     this.vibScale.connect(this.osc2.detune);
 
-    // optional FM: a modulator oscillator drives the carriers' frequency for
-    // bell / clang / growl timbres. Depth scales with the note so the ratio
-    // stays musical across the keyboard.
-    if (params.fm > 0) {
-      this.fmOsc = ctx.createOscillator();
-      this.fmOsc.type = "sine";
-      this.fmOsc.frequency.value = freq * params.fmRatio;
-      const fmDepth = ctx.createGain();
-      fmDepth.gain.value = params.fm * freq * 4;
-      this.fmOsc.connect(fmDepth);
-      fmDepth.connect(this.osc1.frequency);
-      fmDepth.connect(this.osc2.frequency);
-    }
+    // FM: a modulator oscillator drives the carriers' frequency for bell / clang / growl timbres.
+    // ALWAYS wired (depth can be 0) so you can dial FM in/out while a note is held.
+    this.fmOsc = ctx.createOscillator();
+    this.fmOsc.type = "sine";
+    this.fmOsc.frequency.value = freq * params.fmRatio;
+    this.fmDepth = ctx.createGain();
+    this.fmDepth.gain.value = params.fm * freq * 4;
+    this.fmOsc.connect(this.fmDepth);
+    this.fmDepth.connect(this.osc1.frequency);
+    this.fmDepth.connect(this.osc2.frequency);
 
-    const subGain = ctx.createGain();
-    subGain.gain.value = params.subLevel;
+    this.subGain = ctx.createGain();
+    this.subGain.gain.value = params.subLevel;
 
     this.osc1.connect(mix);
     this.osc2.connect(mix);
-    this.sub.connect(subGain).connect(mix);
+    this.sub.connect(this.subGain).connect(mix);
 
-    // optional noise/air layer — its own gain so it reads as breath/top, and it
-    // shares the filter so it opens up with pressure too.
-    if (params.noise > 0) {
-      this.noiseSrc = ctx.createBufferSource();
-      this.noiseSrc.buffer = noiseBuffer(ctx);
-      this.noiseSrc.loop = true;
-      const noiseGain = ctx.createGain();
-      noiseGain.gain.value = params.noise * 0.35;
-      this.noiseSrc.connect(noiseGain).connect(mix);
-    }
+    // noise/air layer — always wired (gain can be 0) so it can be added/removed mid-note.
+    this.noiseSrc = ctx.createBufferSource();
+    this.noiseSrc.buffer = noiseBuffer(ctx);
+    this.noiseSrc.loop = true;
+    this.noiseGain = ctx.createGain();
+    this.noiseGain.gain.value = params.noise * 0.35;
+    this.noiseSrc.connect(this.noiseGain).connect(mix);
 
     mix.connect(this.filter).connect(this.amp).connect(this.panner).connect(dest);
 
     this.osc1.start(t);
     this.osc2.start(t);
     this.sub.start(t);
-    this.fmOsc?.start(t);
-    this.noiseSrc?.start(t);
+    this.fmOsc.start(t);
+    this.noiseSrc.start(t);
 
     this.y = y;
     this.setPressure(pressure, true);
@@ -171,13 +170,36 @@ export class Voice {
 
   setFreq(freq: number): void {
     if (this.released) return;
+    this.hz = freq;
     const t = this.ctx.currentTime;
     const intervalRatio = Math.pow(2, params.interval / 12);
     this.osc1.frequency.setTargetAtTime(freq, t, 0.04);
     this.osc2.frequency.setTargetAtTime(freq * intervalRatio, t, 0.04);
     const subDiv = Math.pow(2, Math.max(0, params.subOctave));
     this.sub.frequency.setTargetAtTime(freq / subDiv, t, 0.04);
-    if (this.fmOsc) this.fmOsc.frequency.setTargetAtTime(freq * params.fmRatio, t, 0.04);
+    this.fmOsc.frequency.setTargetAtTime(freq * params.fmRatio, t, 0.04);
+  }
+
+  /** Re-read the live timbre params and morph THIS held note toward them — so turning the knob /
+   *  picking a sound / moving a slider reshapes the note you're currently holding, in real time. */
+  applyLive(): void {
+    if (this.released) return;
+    const t = this.ctx.currentTime;
+    const wave = makeMorphWave(this.ctx, params.morph);
+    this.osc1.setPeriodicWave(wave);
+    this.osc2.setPeriodicWave(wave);
+    this.sub.type = params.subWave;
+    this.osc1.detune.setTargetAtTime(-params.detune, t, 0.04);
+    this.osc2.detune.setTargetAtTime(+params.detune, t, 0.04);
+    this.osc2.frequency.setTargetAtTime(this.hz * Math.pow(2, params.interval / 12), t, 0.04);
+    this.sub.frequency.setTargetAtTime(this.hz / Math.pow(2, Math.max(0, params.subOctave)), t, 0.04);
+    this.subGain.gain.setTargetAtTime(params.subLevel, t, 0.04);
+    this.fmDepth.gain.setTargetAtTime(params.fm * this.hz * 4, t, 0.04);
+    this.fmOsc.frequency.setTargetAtTime(this.hz * params.fmRatio, t, 0.04);
+    this.noiseGain.gain.setTargetAtTime(params.noise * 0.35, t, 0.04);
+    this.vibScale.gain.setTargetAtTime(params.vibratoDepth, t, 0.04);
+    this.filter.Q.setTargetAtTime(params.resonance, t, 0.04);
+    this.filter.frequency.setTargetAtTime(this.targetCutoff(), t, 0.05);
   }
 
   release(): void {
@@ -191,8 +213,8 @@ export class Voice {
     this.osc1.stop(stopAt);
     this.osc2.stop(stopAt);
     this.sub.stop(stopAt);
-    this.fmOsc?.stop(stopAt);
-    this.noiseSrc?.stop(stopAt);
+    this.fmOsc.stop(stopAt);
+    this.noiseSrc.stop(stopAt);
   }
 }
 

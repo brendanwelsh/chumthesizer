@@ -57,6 +57,7 @@ export const KITS: { name: string; pads: number[] }[] = [
   { name: "Pop",       pads: [0, 3, 6, 7, 9, 11, 12, 13] },  // clean kit + full tom fills
   { name: "Tribal",    pads: [2, 11, 12, 13, 17, 14, 15, 16] }, // toms + congas + perc
   { name: "Glitch FX", pads: [2, 18, 19, 6, 9, 15, 5, 16] }, // zaps, blips, weird
+  { name: "Balkan",    pads: [1, 11, 12, 13, 17, 15, 16, 14] }, // Beirut-ish hand percussion: toms, conga, clave, shaker, cowbell
 ];
 
 /** Default 8-pad kit = the first kit (808 Trap). */
@@ -77,6 +78,9 @@ export class DrumKit {
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.assignment = Array.from({ length: pads }, (_, i) => DEFAULT_KIT[i] ?? 0);
   }
+
+  /** how many pads/tracks this kit holds (= sequencer tracks). */
+  get padCount(): number { return this.assignment.length; }
 
   trigger(pad: number, time: number, accent = false): void {
     this.play(this.assignment[pad] ?? 0, time, accent ? 1.3 : 1);

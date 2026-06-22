@@ -7,13 +7,20 @@
  *  re-fires recorded events through whichever instrument recorded them. Keep these methods
  *  cheap + idempotent; ids are unique per finger (live) or per loop-note (replay). */
 
-export type InstrumentId = "synth" | "keys" | "drums" | "sampler";
+export type InstrumentId = "synth" | "keys" | "bass" | "guitar" | "pluck" | "pad" | "fm" | "drums" | "sampler" | "tombola" | "organ" | "strings" | "arp" | "brass" | "bells";
 
-/** How to draw the on-surface guide for this instrument (key columns / pad grid / nothing). */
+/** How to draw the on-surface guide for this instrument. Every instrument gets a DISTINCT one;
+ *  they render faint + dark (a backdrop behind your fingerprints), see styles.css. */
 export type Overlay =
   | { kind: "none" }
-  | { kind: "keys"; columns: number }            // vertical key columns across the pad
-  | { kind: "grid"; cols: number; rows: number; labels: string[] }; // a pad grid
+  | { kind: "piano"; keys: number; labels: string[] }    // keys — white + black piano keys
+  | { kind: "strings"; strings: number; frets: number }  // bass / guitar — plucked strings
+  | { kind: "grid"; cols: number; rows: number; labels: string[] }  // drums / sampler slices
+  | { kind: "lines"; orient: "h" | "v"; count: number; weight: number }  // organ drawbars · pad bands · arp steps · pluck columns · strings-bows
+  | { kind: "ribbon" }    // synth — a pitch ribbon (centre line + degree ticks)
+  | { kind: "lattice" }   // fm — a faint cross-grid
+  | { kind: "valves" }    // brass — three valve circles
+  | { kind: "wave" };     // sampler (un-sliced) — a faint waveform baseline
 
 export interface Instrument {
   readonly id: InstrumentId;

@@ -115,18 +115,28 @@ internal static class Program
         return sb.Append("]}").ToString();
     }
 
-    // app → helper: { "cmd":"gestures", "lock": true|false }
+    // app → helper:
+    //   { "cmd":"gestures", "lock": true|false }
+    //   { "cmd":"suppress", "on": true|false }   ← NAV mode: turn OFF so the trackpad drives the OS cursor again
     static void HandleCommand(string json)
     {
         try
         {
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             var root = doc.RootElement;
-            if (root.TryGetProperty("cmd", out var c) && c.GetString() == "gestures")
+            if (!root.TryGetProperty("cmd", out var c)) return;
+            var cmd = c.GetString();
+            if (cmd == "gestures")
             {
                 bool lk = root.TryGetProperty("lock", out var l) && l.GetBoolean();
                 GestureControl.Set(lk);
                 Console.WriteLine(lk ? "gestures locked (off) from the app." : "gestures unlocked (on) from the app.");
+            }
+            else if (cmd == "suppress")
+            {
+                bool on = !root.TryGetProperty("on", out var s) || s.GetBoolean();   // default ON
+                MouseSuppressor.SetEnabled(on);
+                Console.WriteLine(on ? "cursor suppression ON (play mode)." : "cursor suppression OFF (nav/mouse mode).");
             }
         }
         catch { /* ignore malformed */ }

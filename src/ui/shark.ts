@@ -1,7 +1,8 @@
-/** A faint ASCII shark that cruises *inside the play surface* and chases the cursor
- *  when it's over the board (OP-1-style fun). Art + swim logic adapted from the user's
- *  tilde.town ~chumthewaters page (public/shark-frames.js → window.SHARK_DATA).
- *  Returns a handle so the Jaws easter egg can send it into a frenzy. 🦈 */
+/** A faint ASCII shark that cruises *inside a play surface* and chases the fingers/cursor over it
+ *  (OP-1-style fun). Art + swim logic adapted from the user's tilde.town ~chumthewaters page
+ *  (public/shark-frames.js → window.SHARK_DATA). One instance per tank, so the hero board AND every
+ *  mini board in the grid view can each have their own. Returns a handle for the Jaws easter egg,
+ *  relayout, and pause (the grid minis sleep while the grid is closed). 🦈 */
 
 interface SharkData {
   box: { w: number; h: number };
@@ -17,13 +18,26 @@ declare global {
 export interface SharkHandle {
   /** Make the shark go wild for a bit (used by the Jaws easter egg). */
   frenzy(ms?: number): void;
+  /** Recompute the swim bounds (call after the tank changes size — e.g. the grid opening). */
+  relayout(): void;
+  /** Stop/resume the swim loop (the grid minis pause while the grid is hidden). */
+  setPaused(b: boolean): void;
 }
 
-export function initShark(): SharkHandle {
+export interface SharkOpts {
+  shark: HTMLElement;                              // the <pre> that holds the ASCII frame
+  tank: HTMLElement;                               // the surface it swims inside
+  fingers?: () => { x: number; y: number }[];      // contacts to chase, normalized 0..1 within the tank
+  followCursor?: boolean;                          // also chase the mouse when idle (hero board: yes; minis: no)
+  paused?: boolean;                                // start asleep (grid minis do, until the grid opens)
+}
+
+export function initShark(opts: SharkOpts): SharkHandle {
+  const { shark, tank } = opts;
+  const fingers = opts.fingers ?? (() => []);
+  const followCursor = opts.followCursor ?? false;
   const data = window.SHARK_DATA;
-  const shark = document.getElementById("shark");
-  const tank = document.getElementById("tank");
-  const noop: SharkHandle = { frenzy() {} };
+  const noop: SharkHandle = { frenzy() {}, relayout() {}, setPaused() {} };
   if (!data || !shark || !tank) return noop;
 
   const ANGLES = data.angles;
@@ -43,6 +57,7 @@ export function initShark(): SharkHandle {
   let tick = 0;
   let dart = 0;
   let frenzyUntil = 0;
+  let nibbleIdx = 0;   // which finger the shark is currently visiting
   const mouse = { x: pos.x, y: pos.y, fresh: false, t: 0 };
 
   const now = (): number => performance.now();
@@ -58,10 +73,12 @@ export function initShark(): SharkHandle {
 
   window.addEventListener("resize", () => { const d = dims(); W = d.w; H = d.h; });
 
+  const relayout = (): void => { const d = dims(); W = d.w; H = d.h; };
+
   if (reduce) {
     shark.textContent = FRAMES[String(ANGLES[Math.floor(ANGLES.length / 2)])][0];
     place();
-    return noop;
+    return { frenzy() {}, relayout, setPaused() {} };
   }
 
   shark.textContent = frameFor(heading);
@@ -73,7 +90,7 @@ export function initShark(): SharkHandle {
   };
   wander();
 
-  // map a window pointer to tank-local coords; ignore it when it's off the board
+  // map a window pointer to tank-local coords; ignore it when it's off the surface
   const localPointer = (e: PointerEvent | MouseEvent): { x: number; y: number } | null => {
     const r = tank.getBoundingClientRect();
     const x = e.clientX - r.left;
@@ -82,22 +99,34 @@ export function initShark(): SharkHandle {
     return { x, y };
   };
 
-  document.addEventListener("pointermove", (e) => {
-    const p = localPointer(e);
-    if (!p) return;
-    mouse.x = p.x; mouse.y = p.y; mouse.fresh = true; mouse.t = now();
-  }, { passive: true });
-  document.addEventListener("click", (e) => {
-    const p = localPointer(e);
-    if (!p) return;
-    target.x = p.x; target.y = p.y; dart = 40;
-  });
+  if (followCursor) {
+    document.addEventListener("pointermove", (e) => {
+      const p = localPointer(e);
+      if (!p) return;
+      mouse.x = p.x; mouse.y = p.y; mouse.fresh = true; mouse.t = now();
+    }, { passive: true });
+    document.addEventListener("click", (e) => {
+      const p = localPointer(e);
+      if (!p) return;
+      target.x = p.x; target.y = p.y; dart = 40;
+    });
+  }
 
   const step = (): void => {
     const frenzied = now() < frenzyUntil;
-    const following = mouse.fresh && now() - mouse.t < 2600;
+    const fl = fingers();
+    const hasFingers = fl.length > 0;                 // chase the FINGERS first (swim between them)
+    const following = !hasFingers && mouse.fresh && now() - mouse.t < 2600;
+    const chasing = hasFingers || following;
 
     if (dart > 0) dart--;
+    else if (hasFingers) {
+      // visit ONE finger at a time: swim all the way to it, nibble, then move to the next
+      if (nibbleIdx >= fl.length) nibbleIdx = 0;
+      const f = fl[nibbleIdx];
+      target.x = f.x * W; target.y = f.y * H;
+      if (Math.hypot(target.x - pos.x, target.y - pos.y) < 26) nibbleIdx = (nibbleIdx + 1) % fl.length;
+    }
     else if (following) { target.x = mouse.x; target.y = mouse.y; }
     else {
       const tx = target.x - pos.x;
@@ -108,15 +137,15 @@ export function initShark(): SharkHandle {
     const dx = target.x - pos.x;
     const dy = target.y - pos.y;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-    const ease = frenzied ? 0.06 : dart > 0 ? 0.05 : following ? 0.03 : 0.012;
-    const standoff = following && dart <= 0 && !frenzied ? 55 : 0; // hover near the cursor
+    const ease = frenzied ? 0.06 : dart > 0 ? 0.05 : hasFingers ? 0.05 : following ? 0.03 : 0.012;
+    const standoff = following && dart <= 0 && !frenzied ? 55 : 0; // hover near the cursor (but dive between fingers)
     const pull = Math.max(dist - standoff, 0) * ease;
     const inertia = frenzied ? 0.82 : 0.9;
 
     vx = vx * inertia + (dx / dist) * pull * (1 - inertia);
     vy = vy * inertia + (dy / dist) * pull * (1 - inertia);
 
-    const cap = frenzied ? 7 : dart > 0 ? 3.2 : following ? 2.4 : 1.4;
+    const cap = frenzied ? 7 : dart > 0 ? 3.2 : chasing ? 2.6 : 1.4;
     let sp = Math.sqrt(vx * vx + vy * vy);
     if (sp > cap) { vx = (vx / sp) * cap; vy = (vy / sp) * cap; sp = cap; }
 
@@ -137,17 +166,30 @@ export function initShark(): SharkHandle {
     if (tick % (frenzied ? 2 : 4) === 0) swim++;
     shark.textContent = frameFor(heading);
     place();
-    requestAnimationFrame(step);
+  };
+
+  // the swim loop — pausable so the 14 grid minis can sleep while the grid is closed
+  let paused = opts.paused ?? false;
+  const loop = (): void => {
+    if (paused) return;
+    step();
+    requestAnimationFrame(loop);
   };
 
   place();
-  requestAnimationFrame(step);
+  if (!paused) requestAnimationFrame(loop);
 
   return {
     frenzy(ms = 9000): void {
       frenzyUntil = now() + ms;
       tank.classList.add("frenzy");
       window.setTimeout(() => tank.classList.remove("frenzy"), ms);
+    },
+    relayout,
+    setPaused(b: boolean): void {
+      if (b === paused) return;
+      paused = b;
+      if (!b) requestAnimationFrame(loop);   // wake up
     },
   };
 }

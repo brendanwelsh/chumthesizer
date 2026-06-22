@@ -26,10 +26,14 @@
     "gestures:toggle": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/touchpad-gestures.ps1 toggle"
   },
   "devDependencies": {
+    "@types/animejs": "^3.1.13",
     "@types/w3c-web-hid": "^1.0.6",
     "@types/webmidi": "^2.1.0",
     "electron": "^33.2.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "animejs": "^3.2.2"
   }
 }

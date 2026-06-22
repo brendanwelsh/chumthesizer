@@ -6,11 +6,14 @@ import type { DrumKit } from "./drums";
 export class Sequencer {
   readonly tracks = 8;
   readonly steps = 16;
+  length = 16;           // how many of the 16 steps actually play / loop (selectable: 4 / 8 / 16)
   pattern: boolean[][];
   bpm = 112;
   swing = 0.14;
   playing = false;
   recording = false;
+  metronome = false;                              // a click track on the quarter notes
+  clickFn: ((time: number, accent: boolean) => void) | null = null;
 
   private current = 0;
   private nextStepTime = 0;
@@ -92,11 +95,12 @@ export class Sequencer {
       this.scheduleStep(this.current, this.nextStepTime);
       const spb = this.secondsPerStep();
       this.nextStepTime += spb;
-      this.current = (this.current + 1) % this.steps;
+      this.current = (this.current + 1) % this.length;   // loop over the selected length (4 / 8 / 16)
     }
   }
 
   private scheduleStep(step: number, time: number): void {
+    if (this.metronome && this.clickFn && step % 4 === 0) this.clickFn(time, step === 0);   // quarter-note click
     const swung = step % 2 === 1 ? time + this.secondsPerStep() * this.swing : time;
     for (let tr = 0; tr < this.tracks; tr++) {
       if (this.pattern[tr][step]) this.kit.trigger(tr, swung);
@@ -112,13 +116,13 @@ export class Sequencer {
     return this.queue[0] && this.queue[0].time <= now ? this.queue[0].step : -1;
   }
 
-  /** Live finger-drumming: always sound the hit; if recording, write the
-   *  nearest step into the pattern. */
-  hit(track: number): void {
-    this.kit.trigger(track, this.ctx.currentTime, true);
+  /** Live finger-drumming: always sound the hit; if recording, quantize it to the nearest
+   *  step (within the selected length) and write it in — so finger-drumming BUILDS the beat. */
+  hit(track: number, accent = true): void {
+    this.kit.trigger(track, this.ctx.currentTime, accent);
     if (this.playing && this.recording) {
       const elapsed = (this.ctx.currentTime - this.playStart) / this.secondsPerStep();
-      const step = ((Math.round(elapsed) % this.steps) + this.steps) % this.steps;
+      const step = ((Math.round(elapsed) % this.length) + this.length) % this.length;
       this.pattern[track][step] = true;
     }
   }

@@ -28,5 +28,6 @@ shot*.png
 drive.png
 legend.png
 _diag.png
-_drive_seq.js
+_*_seq.js
 *.bak
+_*.cjs
