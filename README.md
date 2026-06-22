@@ -105,19 +105,19 @@ Switch from the 5×3 grid above the trackpad, `Tab`/`Shift`+`Tab`, the dial keys
 | --- | --- | --- |
 | 🎚 | **Synth** | Continuous pitch **ribbon** — X glides pitch, pressure swells it. The expressive theremin. |
 | 🎹 | **Keys** | Struck notes on a real **piano keyboard** overlay. |
+| 🎛 | **Organ** | Drawbar columns — thick, sustained. |
+| 🌫 | **Pad** | Soft sustained bands — slow attack, long release. |
+| 🔔 | **Bells** | Bright struck bells — glassy, high, with a touch of FM shimmer. |
+| ✦ | **Pluck** | Short, percussive plucks down narrow key columns. |
+| 〰 | **FM** | Metallic FM voice on a faint cross‑lattice. |
 | 🎸 | **Bass** | Fat, low ribbon — its preset carries the octave + weight. |
 | 🎸 | **Guitar** | Plucky struck voice across **six strings**. |
-| ✦ | **Pluck** | Short, percussive plucks down narrow key columns. |
-| 🌫 | **Pad** | Soft sustained bands — slow attack, long release. |
-| 〰 | **FM** | Metallic FM voice on a faint cross‑lattice. |
-| 🥁 | **Drums** | A labelled **pad kit** that also writes the 16‑step beat (`Beat → Loop` bakes the pattern into a layer). |
-| 🎤 | **Sample** | Record from the mic, then play the clip **pitched** across the pad (the vocal‑chop move). |
-| ⦿ | **Tombola** | A **physics** sequencer: drop bouncing balls into a spinning arena; each wall hit plucks a note. |
-| 🎛 | **Organ** | Drawbar columns — thick, sustained. |
 | 🎻 | **Strings** | Bowed, orchestral lines. |
 | 🎺 | **Brass** | Three trumpet valves. |
 | ↗ | **Arp** | Hold a chord and it **arpeggiates** in time with the groove; lift fingers to change it. |
-| 🔔 | **Bells** | Bright struck bells — glassy, high, with a touch of FM shimmer. |
+| 🥁 | **Drums** | A labelled **pad kit** that also writes the 16‑step beat (`Beat → Loop` bakes the pattern into a layer). |
+| ⦿ | **Tombola** | A **physics** sequencer: drop bouncing balls into a spinning arena; each wall hit plucks a note. |
+| 🎤 | **Sample** | Record from the mic, then play the clip **pitched** across the pad (the vocal‑chop move). |
 
 ---
 

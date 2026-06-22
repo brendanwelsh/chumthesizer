@@ -68,23 +68,26 @@ const drumInst = new DrumInstrument(
   (track, p) => seq.hit(track, p > 0.6),                 // live tap → sequencer (builds the beat when armed)
 );
 const tombola = new TombolaInstrument(engine);
+// Family-grouped order (keyboards → mallet/plucked-synth → strings → brass → rhythmic → sampler).
+// Synth stays first (the signature ribbon + the default); Sample is last. F1–F9 map to the first
+// nine; the rest are reached via Tab, the 5×3 selector, or the dial keys. This is the single source
+// of truth — the selector, grid view, Tab cycle, and F-keys all follow it.
 const rack = new InstrumentRack([
-  new MelodicInstrument(engine, "synth", "Synth", false, "ribbon"),        // pitch ribbon
+  new MelodicInstrument(engine, "synth", "Synth", false, "ribbon"),        // pitch ribbon (the hero)
   new MelodicInstrument(engine, "keys", "Keys", true, "piano"),            // piano keyboard
+  new MelodicInstrument(engine, "organ", "Organ", true, "lines-v", 9, 3),  // drawbars (thick columns)
+  new MelodicInstrument(engine, "pad", "Pad", false, "lines-h", 5, 3),     // soft sustained bands
+  new MelodicInstrument(engine, "bells", "Bells", true, "lattice"),        // bright struck bells
+  new MelodicInstrument(engine, "pluck", "Pluck", true, "lines-v", 14, 1), // short plucks down key columns
+  new MelodicInstrument(engine, "fm", "FM", true, "lattice"),              // metallic FM cross-lattice
   new MelodicInstrument(engine, "bass", "Bass", true, "strings", 4),       // 4 bass strings
   new MelodicInstrument(engine, "guitar", "Guitar", true, "strings", 6),   // 6 guitar strings
-  new MelodicInstrument(engine, "pluck", "Pluck", true, "lines-v", 14, 1), // key columns
-  new MelodicInstrument(engine, "pad", "Pad", false, "lines-h", 5, 3),     // soft horizontal bands
-  new MelodicInstrument(engine, "fm", "FM", true, "lattice"),              // FM cross-lattice
-  drumInst,
-  new SamplerInstrument(sampler),
-  tombola,
-  // appended so F1–F9 stay put — these are reached via Tab / click
-  new MelodicInstrument(engine, "organ", "Organ", true, "lines-v", 9, 3),  // drawbars (thick columns)
-  new MelodicInstrument(engine, "strings", "Strings", false, "lines-h", 9, 1), // bowed lines (orchestral)
+  new MelodicInstrument(engine, "strings", "Strings", false, "lines-h", 9, 1), // bowed orchestral lines
   new MelodicInstrument(engine, "brass", "Brass", true, "valves"),         // trumpet valves
-  new ArpInstrument(engine, () => seq.bpm),                                // beat-locked arpeggiator (step columns)
-  new MelodicInstrument(engine, "bells", "Bells", true, "lattice"),        // bright struck bells — 15th voice (5×3 grid)
+  new ArpInstrument(engine, () => seq.bpm),                                // beat-locked arpeggiator
+  drumInst,                                                                // drum kit + 16-step sequencer
+  tombola,                                                                 // physics sequencer
+  new SamplerInstrument(sampler),                                          // mic sampler — last
 ]);
 // each melodic instrument remembers its OWN sound — switching loads it, switching away saves it.
 const MELODIC: InstrumentId[] = ["synth", "keys", "bass", "guitar", "pluck", "pad", "fm", "organ", "strings", "brass", "bells"];

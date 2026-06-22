@@ -9,8 +9,8 @@ Bindings are ignored while typing in a text field/dropdown.
 ## Instruments
 | Key | Action |
 | --- | --- |
-| `F1`–`F9` | Jump to instrument 1–9: Synth · Keys · Bass · Guitar · Pluck · Pad · FM · Drums · Sample |
-| `Tab` / `Shift`+`Tab` | Cycle all instruments — the rest (**Tombola · Organ · Strings · Arp**) are reached this way or by clicking the tab |
+| `F1`–`F9` | Jump to instrument 1–9: Synth · Keys · Organ · Pad · Bells · Pluck · FM · Bass · Guitar |
+| `Tab` / `Shift`+`Tab` | Cycle all 15 — the rest (**Strings · Brass · Arp · Drums · Tombola · Sample**) are reached this way or by clicking the tab |
 
 ## Loops (the tape, 8 tracks)
 | Key | Action |

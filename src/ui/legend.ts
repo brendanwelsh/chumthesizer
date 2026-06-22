@@ -23,8 +23,8 @@ export function initLegend(root: HTMLElement): Legend {
     `<div class="lg-head"><span class="lg-title">chumthesizer — keys</span><span class="lg-hint">press / to close</span></div>` +
     `<div class="lg-cols">` +
     group("Instruments", [
-      ["F1 … F9", "Synth Keys Bass Guitar Pluck Pad FM Drums Sample", "var(--accent)"],
-      ["Tab  ⇧Tab", "cycle instruments (Tombola = Tab)"],
+      ["F1 … F9", "Synth Keys Organ Pad Bells Pluck FM Bass Guitar", "var(--accent)"],
+      ["Tab  ⇧Tab", "cycle all 15 (Strings Brass Arp Drums Tombola Sample via Tab)"],
       ["9", "grid view — all instruments at once"],
       ["0", "find-chords guide"],
     ]) +
