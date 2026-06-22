@@ -26,9 +26,22 @@ export class MelodicInstrument implements Instrument {
     return Math.max(0, Math.min(13, Math.floor(x * 14)));
   }
 
+  // For the "strings" instruments (Guitar = 6, Bass = 4): you actually PLUCK a string. Y picks the
+  // string (top = highest), X is the fret along it. Strings are stacked a third apart and overlap, so
+  // you can play a melody up one string, a chord across several, or strum down the neck.
+  private FRETS = 7;
+  private stringDegree(x: number, y: number): number {
+    const n = this.n;
+    const fromTop = Math.max(0, Math.min(n - 1, Math.floor(y * n)));
+    const fromBottom = n - 1 - fromTop;                                   // top string = highest pitch
+    const fret = Math.max(0, Math.min(this.FRETS - 1, Math.floor(x * this.FRETS)));
+    return fromBottom * 2 + fret;
+  }
+
   down(id: string, x: number, y: number, pressure: number): void {
     this.activeIds.add(id);
-    if (this.struck) this.engine.playDegree(id, this.degreeAt(x), pressure);
+    if (this.guide === "strings") this.engine.playDegree(id, this.stringDegree(x, y), pressure);
+    else if (this.struck) this.engine.playDegree(id, this.degreeAt(x), pressure);
     else this.engine.playXY(id, x, y, pressure);
   }
   move(id: string, x: number, y: number, pressure: number): void {
