@@ -157,7 +157,9 @@ engine.applyParams();
 engine.setBrightness(params.brightness);
 
 // ── trackpad surface (helper bridge) + on-screen pad ────────────────────────
-const mouseMode = false;     // a real mouse can play the pad (off by default)
+const mouseMode = true;      // a real mouse plays the pad (the default web experience — no trackpad needed).
+                             // The trackpad's own "touch"-type pointer events are filtered out in pad.ts, and
+                             // in PLAY mode the helper suppresses the cursor, so this only ever means: click to play.
 let trackpadPlay = true;     // PLAY mode: the trackpad plays notes + the helper mutes the OS cursor.
                              // NAV mode (false): no notes + cursor freed, so the trackpad navigates the UI.
 const canvas = $("pad") as HTMLCanvasElement;
@@ -172,10 +174,20 @@ for (const dev of ["trackpad", "dial", "pedal"]) {
   $("dev-status").append(d);
   statusDots[dev] = d;
 }
+// web-only honesty: the Magic Trackpad's multitouch+pressure needs the desktop app + its helper.
+// In a plain browser the helper can't connect, so show a subtle note under the trackpad telling
+// people to play with mouse/keyboard/touch instead. Hidden in Electron and once the helper is up.
+const isElectron = /electron/i.test(navigator.userAgent);
+const tpNote = document.createElement("div");
+tpNote.className = "tp-web-note";
+tpNote.innerHTML = "Magic Trackpad pressure needs the <b>desktop app</b> — on the web, play with mouse, keyboard, or touch.";
+document.querySelector(".surface-col .devlabel")?.insertAdjacentElement("afterend", tpNote);
+
 const setDevStatus = (dev: "trackpad" | "dial" | "pedal", s: DeviceStatus): void => {
   settings?.setStatus(dev, s);
   const d = statusDots[dev];
   if (d) { d.className = "sdot mini" + (s.connected ? " on" : ""); d.title = `${dev[0].toUpperCase() + dev.slice(1)}: ${s.label}`; }
+  if (dev === "trackpad") tpNote.classList.toggle("show", !isElectron && !s.connected);
 };
 const devStatus = (dev: "trackpad" | "dial" | "pedal") => (s: DeviceStatus) => setDevStatus(dev, s);
 const tpBridge = initTrackpadBridge(sink, devStatus("trackpad"), { enabled: () => trackpadPlay });
@@ -671,6 +683,9 @@ const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && !!e.targ
 window.addEventListener("keydown", (e) => {
   if (e.repeat || e.metaKey || e.ctrlKey) return;
   if (e.code === "Escape") { closeSettings(); legend.close(); gridView.close(); return; }
+  // G exits the grid view too (you're not playing the pad in grid view, so G is free to close it —
+  // matches the "G" people expect from the tooltip/docs without stealing the G note key in normal play).
+  if (e.code === "KeyG" && gridView.isOpen()) { e.preventDefault(); gridView.close(); return; }
   if (typing(e)) return;
 
   // loop keys 1–6 (Shift = clear that loop)

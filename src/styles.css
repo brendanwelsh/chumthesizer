@@ -139,6 +139,11 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 .devlabel[draggable="true"]:hover { color: var(--ink); background: var(--bg1); }
 .devlabel[draggable="true"]:active { cursor: grabbing; }
 .devlabel[draggable="true"]::before { content: "⠿"; font-size: 12px; letter-spacing: 0; color: var(--muted-2); opacity: 0.7; }
+/* web-only note under the trackpad: pressure/multitouch needs the desktop app (toggled in main.ts) */
+.tp-web-note { display: none; max-width: 380px; margin-top: 2px; text-align: center; font-size: 10px; line-height: 1.5; color: var(--muted-2); }
+.tp-web-note.show { display: block; }
+.tp-web-note b { color: var(--muted); font-weight: 700; }
+
 /* plain-language caption under the dial — demystifies the knob + sound keys */
 .dial-caption { font-size: 9px; color: var(--muted-2); text-align: center; margin-top: 4px; line-height: 1.6; max-width: 200px; }
 .dial-caption b { color: var(--muted); font-weight: 700; }
@@ -494,24 +499,39 @@ body.started .hint { opacity: 0; }
 #tpdebug.on { display: block; }
 
 /* ── reflow tiers — the only width breakpoints; guarantee no overlap ─────── */
+/* (these target .workspace / .tape — the actual markup classes. They used to say .stage / .deck,
+   which no longer exist, so the layout never reflowed and the hero got crushed on narrow windows.) */
 @media (max-width: 1080px) {
-  .stage { gap: var(--s3); }
-  .device { max-width: 280px; }
+  .workspace { gap: var(--s3); }
+  /* tighten only the left flank (the knob) — never the trackpad hero, which has its own cap */
+  .dial-col { max-width: 200px; }
 }
 @media (max-width: 880px) {
   html, body { overflow-y: auto; }
   #app { grid-template-rows: 52px auto auto; height: auto; min-height: 100vh; overflow: visible; }
-  /* stack all three in one column (respects the reorder `order`) */
-  .stage { grid-template-columns: 1fr; }
-  .device { max-width: 380px; }
-  .deck { grid-template-columns: 1fr; grid-template-areas: "transport" "loops" "panel"; }
+  /* stack knob · trackpad · config in one centered column */
+  .workspace { grid-template-columns: 1fr; gap: var(--s4); justify-items: center; }
+  .surface-col { width: 100%; max-width: min(100%, calc(var(--board-h) * 1.4)); }   /* the hero stays biggest */
+  .dial-col { max-width: 220px; }                                                   /* keep the knob sane, never off-screen */
+  .config { width: 100%; max-width: 460px; }
+  /* stack transport · loops · pedal */
+  .tape { grid-template-columns: 1fr; justify-items: center; gap: var(--s3); }
 }
 @media (max-width: 560px) {
-  .loops { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .screen { flex-basis: 240px; }
+  .loops { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* let the top bar wrap instead of forcing the whole app wider than the phone screen — its
+     min-widths (brand 230 + screen 220 + tools) used to overflow, pushing content off-centre. */
+  .topbar { flex-wrap: wrap; row-gap: var(--s2); }
+  .brand { min-width: 0; }
+  .screen { min-width: 0; flex: 1 1 160px; }
+  .top-tools { flex-wrap: wrap; justify-content: flex-end; }
 }
-@media (max-height: 620px) {
-  :root { --board-h: clamp(140px, 30vh, 220px); }
+/* short windows (a laptop screen minus browser chrome): shrink the hero AND let the page scroll,
+   so the loop tape at the bottom is never clipped off-screen with no way to reach it */
+@media (max-height: 760px) {
+  :root { --board-h: clamp(140px, 32vh, 300px); }
+  html, body { overflow-y: auto; }
+  #app { height: auto; min-height: 100vh; overflow: visible; }
 }
 
 /* ── giant master volume knob (in the transport row) ─────────────────────── */
