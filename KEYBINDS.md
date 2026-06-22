@@ -39,6 +39,15 @@ Bindings are ignored while typing in a text field/dropdown.
 
 > **Vertical = dynamics.** On the pad, a mouse/touch has no Force‑Touch pressure, so **vertical position is the dynamics axis**: drag toward the top for loud/bright, the bottom for soft/dark (shown as a faint guide for melodic instruments).
 
+## Chords & sustain (no trackpad needed)
+A mouse is one pointer, but you can still play more than one note:
+| Control | Action |
+| --- | --- |
+| hold `A … ;` / `Q … P` | Hold several note keys at once — the keyboard is **polyphonic** (real chords) |
+| **CHORD** button | Chord mode — **one note / click plays a full scale triad** (also the panel's "Chord" checkbox) |
+| **LATCH** button | Notes **sustain** so a single mouse can stack a chord one note at a time; toggle LATCH off (or `Backspace`) to release |
+| **GUIDE** button / `0` | Find‑chords guide — draws the nearest triad from each note (this is a *guide*, not chord mode) |
+
 ## Knob (dial)
 | Key | Action |
 | --- | --- |

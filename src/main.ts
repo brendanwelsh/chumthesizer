@@ -51,6 +51,11 @@ const midi = new MidiOut();
 const sampler = new Sampler(engine.ctx, engine.drumBus);
 const contacts = new Map<string, Contact>();
 
+// LATCH (sustain): while on, note releases are DEFERRED — every note you play keeps sounding, so a
+// single mouse can stack one note at a time into a chord. Toggle latch off (or panic) to release them.
+let latch = false;
+const latched = new Set<string>();
+
 const $ = (id: string) => document.getElementById(id)!;
 
 // ── instruments: one surface, many voices ───────────────────────────────────
@@ -136,11 +141,19 @@ const sink: SurfaceSink = {
     looper.noteMove(c.id, c.x, c.y, c.pressure);
   },
   end(id) {
+    // latch holds live notes open (so you can stack a chord with one pointer); they release later
+    if (latch && !/^lp\d+_/.test(id)) { latched.add(id); return; }
     contacts.delete(id);
     rack.up(id);
     midi.noteOff(id);
     looper.noteOff(id);
   },
+};
+
+// release everything latch is holding open (latch off, panic, or stop)
+const releaseLatched = (): void => {
+  for (const id of latched) { contacts.delete(id); rack.up(id); midi.noteOff(id); looper.noteOff(id); }
+  latched.clear();
 };
 
 const panic = (): void => {
@@ -149,6 +162,7 @@ const panic = (): void => {
   midi.allOff();
   engine.silence();   // kill reverb/delay tails + any droning filter — a real "make it stop"
   contacts.clear();
+  latched.clear();    // panic also drops anything latch was holding open
 };
 
 // ── restore the last session ─────────────────────────────────────────────────
@@ -220,7 +234,7 @@ const playBtn = document.getElementById("playmode");
 if (playBtn) playBtn.onclick = () => setPlayMode(!trackpadPlay);
 
 // ── deck: transport + loop tape + context panel ─────────────────────────────
-const panel = initPanel($("panel"), { engine, seq, kit, drumInst, sampler, looper, sounds: Object.keys(SOUNDS), onPickSound: (name: string) => pickSound(name), onChange: () => { engine.applyParams(); engine.setBrightness(params.brightness); engine.updateLiveTimbre(); saveState(); }, onOverlay: () => overlay.set(rack.overlay()), onCaptureBeat: () => captureBeat() });
+const panel = initPanel($("panel"), { engine, seq, kit, drumInst, sampler, looper, sounds: Object.keys(SOUNDS), onPickSound: (name: string) => pickSound(name), onChange: () => { engine.applyParams(); engine.setBrightness(params.brightness); engine.updateLiveTimbre(); syncChordBtn?.(); saveState(); }, onOverlay: () => overlay.set(rack.overlay()), onCaptureBeat: () => captureBeat() });
 // press a loop: cycle it (record → play → mute) AND jump to ITS instrument + target it for sound edits,
 // so building the song is loop-by-loop — loop 2 = drums, loop 3 = keys, click to hop between them.
 const loopPress = (i: number): void => {
@@ -339,6 +353,7 @@ rack.onActiveChange((id) => {
   rack.get(activeBefore)?.panic();
   sampler.releaseAll();
   for (const k of [...contacts.keys()]) if (!/^lp\d+_/.test(k)) contacts.delete(k);  // drop live fingerprints (keep loop ones)
+  latched.clear();   // the old instrument's voices were just panicked; forget what latch held there
   activeBefore = id;
   // per-instrument sound memory: save the outgoing melodic voice, load the incoming one
   if (MELODIC.includes(prevMelodic)) instSounds[prevMelodic] = snapVoice();
@@ -352,6 +367,7 @@ rack.onActiveChange((id) => {
   if (viz) viz.overlayPaint = id === "tombola" ? (ctx, w, h) => tombola.paint(ctx, w, h) : null;
   instSwitch.setActive(id); overlay.set(rack.overlay()); panel.setInstrument(id); panel.refresh(); saveState();
   board.classList.toggle("yaxis-on", MELODIC.includes(id));   // the up=loud/down=soft guide is meaningful for melodic voices
+  syncChordBtn?.();   // params.chord is per-instrument — keep the CHORD button in sync after a swap
 });
 instSwitch.setActive(rack.active);
 overlay.set(rack.overlay());
@@ -640,6 +656,23 @@ let chordFindOn = false;   // "find chords" guide (0 or the CHORDS button) — m
 const toggleChords = (): void => { chordFindOn = !chordFindOn; const b = document.getElementById("chords-btn"); if (b) b.classList.toggle("on", chordFindOn); };
 const chordsBtn = document.getElementById("chords-btn");
 if (chordsBtn) chordsBtn.onclick = toggleChords;
+
+// CHORD mode — one note/click plays a full scale triad (engine.degreesFor reads params.chord). The
+// button mirrors params.chord, which is per-instrument, so re-sync it whenever the instrument changes.
+const chordBtn = document.getElementById("chord-btn");
+const syncChordBtn = (): void => { if (chordBtn) chordBtn.classList.toggle("on", !!params.chord); };
+const toggleChordMode = (): void => { params.chord = !params.chord; panel.refresh(); syncChordBtn(); saveState(); };
+if (chordBtn) chordBtn.onclick = toggleChordMode;
+syncChordBtn();
+
+// LATCH — sustain notes so a single mouse can stack a chord; toggle off (or panic) to release them.
+const latchBtn = document.getElementById("latch-btn");
+const setLatch = (on: boolean): void => {
+  latch = on;
+  if (!on) releaseLatched();
+  if (latchBtn) latchBtn.classList.toggle("on", on);
+};
+if (latchBtn) latchBtn.onclick = () => setLatch(!latch);
 viz.chordFind = () => chordFindOn;
 viz.melodicActive = () => MELODIC.includes(rack.active);
 viz.start();
@@ -794,7 +827,8 @@ let ctlSeq = 0;
   setStep: (tr: number, st: number) => seq.toggleStep(tr, st),
   tapeStop: (on: boolean) => tapeStop(on),
   sound: (name: string) => setSound(name),
-  chord: (on: boolean) => { params.chord = !!on; panel.refresh(); saveState(); },   // chord mode: one finger → a full chord
+  chord: (on: boolean) => { params.chord = !!on; panel.refresh(); syncChordBtn(); saveState(); },   // chord mode: one finger → a full chord
+  latch: (on: boolean) => setLatch(on),                                              // sustain: stack a chord with one pointer
   chordGuide: () => toggleChords(),                                                   // the find-chords guide overlay
   grid: () => gridView.toggle(),
   dialTurn: (d: number) => applyPerf(perf + d),

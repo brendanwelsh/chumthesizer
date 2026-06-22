@@ -36,6 +36,11 @@ export function initLegend(root: HTMLElement): Legend {
       [",   .", "scale  −  /  +"],
       ["-   =", "key (root)  −  /  +"],
     ]) +
+    group("Chords (no trackpad needed)", [
+      ["hold A … P", "hold several note keys = a chord"],
+      ["CHORD button", "one note / click plays a full chord"],
+      ["LATCH button", "notes sustain — stack a chord with one mouse, toggle off to release"],
+    ]) +
     group("Loops", [
       [loopKeys, "record → play → mute  (+ jump to its instrument)"],
       ["⇧ 1–6", "clear that loop"],
