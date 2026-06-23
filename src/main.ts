@@ -741,6 +741,10 @@ const KBD: Record<string, number> = {
 };
 const MAXDEG = 19;
 const heldKbd = new Set<string>();
+// panic-on-blur kills the audio, but a key/mod physically released while we're unfocused never
+// delivers its keyup — so forget what's "held" too, or that note key goes dead (heldKbd.has → return)
+// and a stuck V/B/N/M keeps hijacking the dial. Pair this with panic() at every "make it stop" site.
+const releaseHeld = (): void => { heldKbd.clear(); heldMods.length = 0; };
 const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && !!e.target.closest("input, select, textarea");
 
 window.addEventListener("keydown", (e) => {
@@ -776,7 +780,7 @@ window.addEventListener("keydown", (e) => {
   switch (e.code) {
     case "Space": case "Enter": e.preventDefault(); toggleRun(); break;     // play / stop
     case "Backquote": e.preventDefault(); armRecord(); break;               // record next loop
-    case "Backspace": e.preventDefault(); panic(); heldKbd.clear(); break;  // panic — all notes off
+    case "Backspace": e.preventDefault(); panic(); releaseHeld(); break;  // panic — all notes off
     case "Delete": e.preventDefault(); { const s = lastNonEmpty(); if (s >= 0) looper.clear(s); } break; // undo last loop (= pedal Undo)
     case "Tab": e.preventDefault(); rack.cycle(e.shiftKey ? -1 : 1); break; // next/prev instrument
     case "KeyX": dice(); break;                                             // re-roll
@@ -863,8 +867,8 @@ let ctlSeq = 0;
 };
 
 // ── drop held notes when the window loses focus / hides ─────────────────────
-window.addEventListener("blur", panic);
-document.addEventListener("visibilitychange", () => { if (document.hidden) panic(); });
+window.addEventListener("blur", () => { panic(); releaseHeld(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) { panic(); releaseHeld(); } });
 
 // ── start audio + clear the hint on first interaction ───────────────────────
 const kick = (): void => {
