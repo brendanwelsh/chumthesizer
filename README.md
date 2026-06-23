@@ -2,7 +2,7 @@
 
 > A tactile, OP‑1‑inspired **groovebox** you play with three real devices: an **Apple Magic Trackpad 2**
 > as a multi‑instrument surface, an **Ulanzi D100H dial** that warps the sound, and an **Elgato Stream
-> Deck Pedal** for hands‑free looping. **Fifteen voices**, a robust multitrack **looper**, a reactive
+> Deck Pedal** for hands‑free looping. **Fifteen voices**, a robust **8‑track looper**, a reactive
 > OP‑1‑style screen — and a shark that cruises the trackpad. Pure **Web Audio**, no plugins; runs in a
 > browser tab or as a desktop app.
 
@@ -106,7 +106,7 @@ Switch from the 5×3 grid above the trackpad, `Tab`/`Shift`+`Tab`, the dial keys
 
 | | Voice | What it does |
 | --- | --- | --- |
-| 🎚 | **Synth** | Continuous pitch **ribbon** — X glides pitch, pressure swells it. The expressive theremin. |
+| 🎚 | **Synth** | Continuous pitch **ribbon** — X glides pitch, finger height swells it. The expressive theremin. |
 | 🎹 | **Keys** | Struck notes on a real **piano keyboard** overlay. |
 | 🎛 | **Organ** | Drawbar columns — thick, sustained. |
 | 🌫 | **Pad** | Soft sustained bands — slow attack, long release. |
@@ -158,8 +158,8 @@ npm run typecheck  # tsc --noEmit
 ```
 
 Click once to start audio, then play — mouse, keyboard, or touch. **Electron is the better home for
-the trackpad**: it launches with the Chromium HID blocklist disabled so it can claim the trackpad's
-multitouch + pressure. Hardware setup (the C# helper, the dial + pedal plugins) is in **[BUILD.md](BUILD.md)**.
+the trackpad**: it auto‑starts the C# Raw‑Input helper (so the trackpad just works) and disables the
+Chromium HID blocklist. Hardware setup (the C# helper, the dial + pedal plugins) is in **[BUILD.md](BUILD.md)**.
 Settings + the current pattern persist to `localStorage`.
 
 ---
@@ -182,7 +182,7 @@ trackpad-bridge/   C# helper — Raw Input multitouch contacts + cursor suppress
 plugins/           UlanziDeck plugin (D100H dial + 7 keys) · Stream Deck plugin (foot pedal)
 ```
 
-More: **[DESIGN.md](DESIGN.md)** (rationale + the pressure decode) · **[BUILD.md](BUILD.md)** (run &
+More: **[DESIGN.md](DESIGN.md)** (rationale — the trackpad path + the dial decision) · **[BUILD.md](BUILD.md)** (run &
 play) · **[KEYBINDS.md](KEYBINDS.md)** (the full key map).
 
 ---
@@ -211,6 +211,7 @@ Other hardware‑driven projects by [@brendanwelsh](https://github.com/brendanwe
 - The **D100H dial photos + GIF** and the interactive dial‑skin assets are shared with
   [ulanzi-d100h-homebrew](https://github.com/brendanwelsh/ulanzi-d100h-homebrew) (they originated here).
 - Built with **TypeScript · Vite · Electron · the Web Audio API · [Anime.js](https://animejs.com)**.
-  The Magic Trackpad force decode follows the Linux `hid-magicmouse` driver.
+  The Magic Trackpad force decode (the macOS/Linux WebHID path in `src/input/trackpad.ts`) follows
+  the Linux `hid-magicmouse` driver.
 
 *No affiliation with Apple, Ulanzi, or Elgato; product names and images are for identification only.*
