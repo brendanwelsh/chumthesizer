@@ -615,7 +615,7 @@ const legend = initLegend($("legend"));
 const keysBtn = document.getElementById("keys-btn");
 if (keysBtn) keysBtn.onclick = () => legend.toggle();
 
-// GRID / MULTI view — watch every instrument play at once (toggle with G or the grid button)
+// GRID / MULTI view — watch every instrument play at once (open with 9 or the grid button; G/Esc close)
 const gridView = initGridView($("gridview"), {
   contacts,
   instOfLoop: (i) => looper.instOf(i),
@@ -734,7 +734,7 @@ if (logoEl) logoEl.addEventListener("click", () => {
   if (logoClicks >= 5) { logoClicks = 0; document.body.classList.toggle("shark-loose"); requestAnimationFrame(() => shark.relayout()); }
 });
 
-// ── computer keyboard: play the active instrument + loop keys 1–6 ───────────
+// ── computer keyboard: play the active instrument + loop keys 1–8 ───────────
 const KBD: Record<string, number> = {
   KeyA: 0, KeyS: 1, KeyD: 2, KeyF: 3, KeyG: 4, KeyH: 5, KeyJ: 6, KeyK: 7, KeyL: 8, Semicolon: 9,
   KeyQ: 10, KeyW: 11, KeyE: 12, KeyR: 13, KeyT: 14, KeyY: 15, KeyU: 16, KeyI: 17, KeyO: 18, KeyP: 19,
@@ -755,7 +755,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyG" && gridView.isOpen()) { e.preventDefault(); gridView.close(); return; }
   if (typing(e)) return;
 
-  // loop keys 1–6 (Shift = clear that loop)
+  // loop keys 1–8 (Shift = clear that loop)
   if (/^Digit[1-8]$/.test(e.code)) { e.preventDefault(); const i = Number(e.code.slice(5)) - 1; if (e.shiftKey) looper.clear(i); else loopPress(i); return; }
 
   // note keys → the active instrument (records into the armed loop, like the trackpad)
@@ -772,8 +772,9 @@ window.addEventListener("keydown", (e) => {
   // hold a knob-mod key (V/B/N/M); the dial knob then tweaks that param instead of the filter
   if (KNOB_MODS[e.code]) { e.preventDefault(); if (!heldMods.includes(e.code)) heldMods.push(e.code); return; }
 
-  // F1…F9 — jump straight to an instrument (Synth Keys Bass Guitar Pluck Pad FM Drums Sample;
-  // the 10th, Tombola, is reached with Tab). See KEYBINDS.md for the full, authoritative map.
+  // F1…F9 — jump to the first nine instruments (Synth Keys Organ Pad Bells Pluck FM Bass Guitar);
+  // the rest (Strings Brass Arp Drums Tombola Sample) are reached via Tab or the 5×3 selector.
+  // This follows the rack order in main.ts — see KEYBINDS.md for the full, authoritative map.
   const fk = /^F([1-9])$/.exec(e.code);
   if (fk) { const inst = rack.list()[Number(fk[1]) - 1]; if (inst) { e.preventDefault(); rack.setActive(inst.id); } return; }
 
@@ -880,7 +881,7 @@ const kick = (): void => {
 window.addEventListener("pointerdown", kick);
 window.addEventListener("keydown", kick);
 
-// ── F2 debug overlay ─────────────────────────────────────────────────────────
+// ── F12 debug overlay (live contacts) ─────────────────────────────────────────
 const dbg = document.createElement("div");
 dbg.id = "tpdebug";
 document.body.append(dbg);
@@ -889,7 +890,7 @@ window.addEventListener("keydown", (e) => { if (e.code === "F12") { debugOn = !d
 const paintDebug = (): void => {
   if (debugOn) {
     const rows = [...contacts.values()].map((c) => `${c.id}  x=${c.x.toFixed(3)} y=${c.y.toFixed(3)} p=${c.pressure.toFixed(2)}`);
-    dbg.textContent = "F2 — live contacts:\n" + (rows.length ? rows.join("\n") : "(none)");
+    dbg.textContent = "F12 — live contacts:\n" + (rows.length ? rows.join("\n") : "(none)");
   }
   requestAnimationFrame(paintDebug);
 };

@@ -7,6 +7,15 @@
 > browser tab or as a desktop app.
 
 <p align="center">
+  <a href="https://chumthesizer.github.io/"><b>▶&nbsp;Play it live</b></a>
+  &nbsp;·&nbsp; <a href="https://chumthesizer.github.io/about.html">Project page</a>
+  &nbsp;·&nbsp; <a href="BUILD.md">Build&nbsp;&amp;&nbsp;play</a>
+  &nbsp;·&nbsp; <a href="KEYBINDS.md">Key&nbsp;map</a>
+  &nbsp;·&nbsp; <a href="DESIGN.md">Design&nbsp;notes</a>
+  <br><sub>The hosted version is fully playable with <b>mouse · keyboard · touch</b> — no hardware or install. (The three devices need their local helpers; see Build &amp; play.)</sub>
+</p>
+
+<p align="center">
   <img src="docs/images/demo.gif" width="860" alt="Building a full 8-track loop live — dial spins, key presses, chord mode, then the whole rack in grid view">
 </p>
 
@@ -46,7 +55,7 @@ in its loop's colour.
 <table>
   <tr>
     <td width="38%" align="center"><img src="docs/images/shark.png" alt="The ASCII shark swimming the trackpad between two fingerprints"><br><sub>The shark, mid‑cruise, visiting your fingers</sub></td>
-    <td width="62%" align="center"><img src="docs/images/grid.png" alt="Grid view — all 15 instruments playing at once in a 5×3, each cell with its own shark"><br><sub>Grid view (<code>G</code>) — the whole rack at once · type <code>jaws</code> for a feeding frenzy</sub></td>
+    <td width="62%" align="center"><img src="docs/images/grid.png" alt="Grid view — all 15 instruments playing at once in a 5×3, each cell with its own shark"><br><sub>Grid view (<code>9</code>) — the whole rack at once · type <code>jaws</code> for a feeding frenzy</sub></td>
   </tr>
 </table>
 

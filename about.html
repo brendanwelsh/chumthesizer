@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>chumthesizer — a trackpad groovebox in the browser</title>
+    <meta name="description" content="An OP-1-inspired groovebox you play with a Magic Trackpad, an Ulanzi dial, and a Stream Deck pedal — 15 voices, an 8-track looper, and an ASCII shark. Pure Web Audio. Playable right now with mouse, keyboard, or touch." />
+    <link rel="icon" type="image/png" href="/chum-logo.png" />
+
+    <!-- Social cards -->
+    <meta property="og:title" content="chumthesizer — a trackpad groovebox in the browser" />
+    <meta property="og:description" content="15 voices, an 8-track looper, a reactive OP-1-style screen, and a shark that cruises the pad. Pure Web Audio — play it right now with mouse, keyboard, or touch." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://chumthesizer.github.io/hero.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <style>
+      :root {
+        --bg0: #e7e8ee; --bg1: #f2f3f7; --bg2: #fafbfd; --bg3: #ffffff;
+        --line: rgba(20, 22, 30, 0.10); --line-2: rgba(20, 22, 30, 0.18);
+        --ink: #1b1c22; --muted: #5b5c66; --muted-2: #8a8c96;
+        --rec: #ff453a; --warn: #ffb02e; --ok: #2fbf63; --accent: #19b6d8;
+        --shadow-1: 0 1px 2px rgba(20, 22, 30, 0.10);
+        --shadow-2: 0 18px 44px rgba(20, 22, 30, 0.16);
+        --radius: 16px;
+        /* the 8 loop colors — used as playful accents */
+        --c0:#19e3ff; --c1:#ff2e88; --c2:#7cffb2; --c3:#f0a23c;
+        --c4:#b06cff; --c5:#ffd23c; --c6:#ff6b6b; --c7:#5ad1c8;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0; color: var(--ink); background: var(--bg0);
+        background-image:
+          radial-gradient(1100px 600px at 50% -10%, #ffffff 0%, rgba(255,255,255,0) 60%),
+          linear-gradient(180deg, var(--bg1), var(--bg0));
+        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; }
+      img { max-width: 100%; height: auto; display: block; }
+      .wrap { max-width: 1040px; margin: 0 auto; padding: 0 22px; }
+
+      /* ── top nav ───────────────────────────────────────────── */
+      nav {
+        position: sticky; top: 0; z-index: 20;
+        background: rgba(242,243,247,0.82); backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      nav .wrap { display: flex; align-items: center; gap: 14px; height: 60px; }
+      nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.02em; }
+      nav .brand img { width: 28px; height: 28px; border-radius: 7px; }
+      nav .brand .accent { color: var(--accent); }
+      nav .links { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+      nav .links a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 10px; border-radius: 9px; }
+      nav .links a:hover { color: var(--ink); background: var(--bg3); }
+      .btn {
+        display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 700;
+        border-radius: 11px; padding: 10px 16px; border: 1px solid transparent; cursor: pointer;
+        transition: transform .08s ease, box-shadow .15s ease, background .15s ease;
+      }
+      .btn:active { transform: translateY(1px); }
+      .btn-primary { background: var(--accent); color: #04323c; box-shadow: 0 6px 18px rgba(25,182,216,.35); }
+      .btn-primary:hover { box-shadow: 0 8px 24px rgba(25,182,216,.45); }
+      .btn-ghost { background: var(--bg3); color: var(--ink); border-color: var(--line-2); }
+      .btn-ghost:hover { background: var(--bg2); }
+      nav .links .btn { padding: 8px 14px; font-size: 14px; }
+
+      /* ── hero ──────────────────────────────────────────────── */
+      header.hero { padding: 64px 0 28px; text-align: center; }
+      .eyebrow {
+        display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+        color: var(--accent); background: rgba(25,182,216,.10); border: 1px solid rgba(25,182,216,.30);
+        padding: 5px 12px; border-radius: 999px; margin-bottom: 20px;
+      }
+      h1 { font-size: clamp(38px, 7vw, 68px); line-height: 1.02; letter-spacing: -.035em; margin: 0 0 18px; font-weight: 850; }
+      h1 .accent { color: var(--accent); }
+      .lede { font-size: clamp(17px, 2.4vw, 21px); color: var(--muted); max-width: 720px; margin: 0 auto 26px; }
+      .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+      .cta .btn { font-size: 16px; padding: 13px 22px; }
+      .nohw { font-size: 13.5px; color: var(--muted-2); }
+      .nohw b { color: var(--muted); }
+
+      .shot { margin: 34px auto 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line-2); box-shadow: var(--shadow-2); background: var(--bg3); }
+      .shot.cap { box-shadow: var(--shadow-1); }
+      figure { margin: 0; }
+      figcaption { font-size: 13px; color: var(--muted-2); text-align: center; padding: 10px 14px; }
+
+      /* ── sections ──────────────────────────────────────────── */
+      section { padding: 52px 0; }
+      section + section { border-top: 1px solid var(--line); }
+      .sec-head { text-align: center; max-width: 720px; margin: 0 auto 34px; }
+      h2 { font-size: clamp(26px, 4vw, 36px); letter-spacing: -.025em; margin: 0 0 12px; font-weight: 800; }
+      h2 .accent { color: var(--accent); }
+      .sec-head p { color: var(--muted); font-size: 17px; margin: 0; }
+
+      .grid { display: grid; gap: 16px; }
+      .g2 { grid-template-columns: repeat(2, 1fr); }
+      .g3 { grid-template-columns: repeat(3, 1fr); }
+      @media (max-width: 760px) { .g2, .g3 { grid-template-columns: 1fr; } }
+
+      .card { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-1); }
+      .card img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: var(--bg3); border-bottom: 1px solid var(--line); }
+      .card .body { padding: 16px 18px; }
+      .card h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.01em; }
+      .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+      /* device cards (image is a product shot, contained not cropped) */
+      .device .ph { display: grid; place-items: center; height: 168px; background: var(--bg3); border-bottom: 1px solid var(--line); padding: 14px; }
+      .device .ph img { width: auto; max-height: 140px; aspect-ratio: auto; object-fit: contain; border: 0; background: none; }
+      .device .tag { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+
+      /* instrument chips */
+      .insts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      @media (max-width: 760px) { .insts { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 460px) { .insts { grid-template-columns: 1fr; } }
+      .inst { display: flex; gap: 12px; align-items: flex-start; background: var(--bg2); border: 1px solid var(--line); border-left: 3px solid var(--ic, var(--accent)); border-radius: 12px; padding: 13px 14px; }
+      .inst .emoji { font-size: 22px; line-height: 1.1; }
+      .inst h4 { margin: 0 0 2px; font-size: 15px; }
+      .inst p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+      /* feature rows (looper + shark) */
+      .feature { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center; }
+      .feature.flip > .media { order: 2; }
+      @media (max-width: 820px) { .feature { grid-template-columns: 1fr; } .feature.flip > .media { order: 0; } }
+      .feature h2 { text-align: left; }
+      .feature ul { margin: 14px 0 0; padding-left: 0; list-style: none; }
+      .feature li { position: relative; padding-left: 26px; margin: 9px 0; color: var(--muted); }
+      .feature li::before { content: "▸"; position: absolute; left: 4px; color: var(--accent); font-weight: 800; }
+      .feature li b { color: var(--ink); }
+      .media img { border-radius: var(--radius); border: 1px solid var(--line-2); box-shadow: var(--shadow-1); }
+
+      /* controls table */
+      .keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 28px; max-width: 880px; margin: 0 auto; }
+      @media (max-width: 720px) { .keys { grid-template-columns: 1fr; } }
+      .krow { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+      .krow .k { flex: 0 0 auto; }
+      .krow .d { color: var(--muted); font-size: 14.5px; }
+      kbd {
+        font: 600 12.5px/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        background: var(--bg3); border: 1px solid var(--line-2); border-bottom-width: 2px;
+        border-radius: 6px; padding: 3px 7px; color: var(--ink); white-space: nowrap; display: inline-block; margin: 1px 1px;
+      }
+
+      /* run / install */
+      pre { background: #1b1c22; color: #e7e8ee; border-radius: 12px; padding: 18px 20px; overflow-x: auto; font: 13.5px/1.7 ui-monospace, Menlo, Consolas, monospace; box-shadow: var(--shadow-1); }
+      pre .c { color: #8a8c96; }
+      pre .g { color: #7cffb2; }
+      .run-note { color: var(--muted); font-size: 14.5px; max-width: 760px; margin: 16px auto 0; text-align: center; }
+
+      /* footer */
+      footer { border-top: 1px solid var(--line); padding: 40px 0 60px; color: var(--muted); font-size: 14px; }
+      footer .flinks { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+      footer .flinks a { color: var(--ink); text-decoration: none; font-weight: 600; }
+      footer .flinks a:hover { color: var(--accent); }
+      footer small { color: var(--muted-2); }
+
+      .center { text-align: center; }
+      .mt { margin-top: 26px; }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+      <div class="wrap">
+        <span class="brand"><img src="/chum-logo.png" alt="" />chum<span class="accent">thesizer</span></span>
+        <span class="links">
+          <a href="#hardware">Hardware</a>
+          <a href="#instruments">Instruments</a>
+          <a href="#looper">Looper</a>
+          <a href="#controls">Controls</a>
+          <a href="#run">Run it</a>
+          <a class="btn btn-primary" href="./">▶ Play</a>
+        </span>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="wrap">
+        <span class="eyebrow">A groovebox in the browser · Pure Web Audio</span>
+        <h1>Play a synth with your <span class="accent">trackpad</span>.</h1>
+        <p class="lede">
+          chumthesizer is an OP‑1‑inspired <b>groovebox</b> you play with three real devices —
+          a Magic Trackpad as the instrument surface, an Ulanzi dial that warps the sound, and a
+          Stream Deck pedal that drives the loop. <b>15 voices</b>, an <b>8‑track looper</b>, a
+          reactive screen, and an ASCII shark that cruises the pad.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="./">▶ Play it now</a>
+          <a class="btn btn-ghost" href="https://github.com/brendanwelsh/chumthesizer">View on GitHub</a>
+        </div>
+        <p class="nohw">No install, no hardware — fully playable with <b>mouse · keyboard · touch</b>. Each device lights up if you connect it.</p>
+
+        <figure class="shot">
+          <img src="/hero.png" alt="The full chumthesizer instrument: dial, trackpad, sound panel, and the loop tape" />
+        </figure>
+      </div>
+    </header>
+
+    <!-- ── what it is ──────────────────────────────────────────── -->
+    <section id="what">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>One surface, a whole <span class="accent">rack</span></h2>
+          <p>
+            The multitouch trackpad plays an in‑app Web Audio synth — X is pitch, finger height is
+            loudness and brightness. Under it sits a drum machine, a 16‑step sequencer, and a looper
+            that records, overdubs, mutes, stacks, and clones layers at ½× / 1× / 2× on one drift‑free
+            clock. Switch the surface between 15 voices live; each remembers its own sound.
+          </p>
+        </div>
+        <figure class="shot cap">
+          <img src="./docs/images/demo.gif" alt="Building a full 8-track loop live — the dial spins, keys swap sounds, then the whole rack in grid view" />
+          <figcaption>Live: building a full 8‑track loop — spin the dial, press its keys to swap sounds, chord mode, then the whole rack in grid view.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ── hardware ────────────────────────────────────────────── -->
+    <section id="hardware">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Three devices, each doing what its shape is best at</h2>
+          <p>All three are <b>optional</b>. The app is fully playable without them and lights each one up as you connect it.</p>
+        </div>
+        <div class="grid g3">
+          <div class="card device">
+            <div class="ph"><img src="./docs/images/magic-trackpad.png" alt="Apple Magic Trackpad 2" /></div>
+            <div class="body">
+              <span class="tag">the instrument</span>
+              <h3>Magic Trackpad 2</h3>
+              <p>Multitouch play surface. X glides pitch; finger height drives dynamics (top = loud/bright, bottom = soft/dark). A small Raw‑Input helper feeds finger contacts in and mutes the OS cursor while you play.</p>
+            </div>
+          </div>
+          <div class="card device">
+            <div class="ph"><img src="./docs/images/d100h-dial-iso.png" alt="Ulanzi D100H dial" /></div>
+            <div class="body">
+              <span class="tag">the warp</span>
+              <h3>Ulanzi D100H dial</h3>
+              <p>Turn = the current knob macro (Filter → Bright → Reverb → Mod → Noise); press = cycle it. The 7 keys are sound presets — hold one for that sound, hold several to <b>blend</b> them into a new in‑between voice.</p>
+            </div>
+          </div>
+          <div class="card device">
+            <div class="ph"><img src="./docs/images/streamdeck-pedal.png" alt="Elgato Stream Deck Pedal" /></div>
+            <div class="body">
+              <span class="tag">hands‑free</span>
+              <h3>Stream Deck Pedal</h3>
+              <p>Left = <b>Rec</b> the next layer (auto‑advances, so it doubles as “next”). Middle = <b>Play/Stop</b> everything. Right = <b>Undo</b> the last layer. A foot‑driven loop station.</p>
+            </div>
+          </div>
+        </div>
+        <p class="run-note">Each device is owned by its own driver/software, so a tiny localhost bridge re‑broadcasts it to the app — see <a href="https://github.com/brendanwelsh/chumthesizer/blob/main/BUILD.md">Build &amp; play</a> for setup. The reverse‑engineering write‑up for the dial lives in <a href="https://github.com/brendanwelsh/ulanzi-d100h-homebrew">ulanzi‑d100h‑homebrew</a>.</p>
+      </div>
+    </section>
+
+    <!-- ── instruments ─────────────────────────────────────────── -->
+    <section id="instruments">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Fifteen voices</h2>
+          <p>Switch from the 5×3 grid above the pad, <kbd>Tab</kbd>, the dial keys, or <kbd>F1</kbd>–<kbd>F9</kbd>. Each melodic voice remembers its own sound.</p>
+        </div>
+        <div class="insts">
+          <div class="inst" style="--ic:var(--c0)"><span class="emoji">🎚️</span><div><h4>Synth</h4><p>Continuous pitch ribbon — X glides pitch, height swells it. The expressive theremin.</p></div></div>
+          <div class="inst" style="--ic:var(--c1)"><span class="emoji">🎹</span><div><h4>Keys</h4><p>Struck notes on a real piano keyboard overlay; held notes light up.</p></div></div>
+          <div class="inst" style="--ic:var(--c2)"><span class="emoji">🎛️</span><div><h4>Organ</h4><p>Drawbar columns — thick and sustained.</p></div></div>
+          <div class="inst" style="--ic:var(--c3)"><span class="emoji">🌫️</span><div><h4>Pad</h4><p>Soft sustained bands — slow attack, long release.</p></div></div>
+          <div class="inst" style="--ic:var(--c4)"><span class="emoji">🔔</span><div><h4>Bells</h4><p>Bright struck bells — glassy and high, with a touch of FM shimmer.</p></div></div>
+          <div class="inst" style="--ic:var(--c5)"><span class="emoji">✦</span><div><h4>Pluck</h4><p>Short, percussive plucks down narrow key columns.</p></div></div>
+          <div class="inst" style="--ic:var(--c6)"><span class="emoji">〰️</span><div><h4>FM</h4><p>Metallic FM voice on a faint cross‑lattice.</p></div></div>
+          <div class="inst" style="--ic:var(--c7)"><span class="emoji">🎸</span><div><h4>Bass</h4><p>Fat, low ribbon — its preset carries the octave and weight.</p></div></div>
+          <div class="inst" style="--ic:var(--c0)"><span class="emoji">🎸</span><div><h4>Guitar</h4><p>Plucky struck voice across six pluckable strings.</p></div></div>
+          <div class="inst" style="--ic:var(--c1)"><span class="emoji">🎻</span><div><h4>Strings</h4><p>Bowed, orchestral lines.</p></div></div>
+          <div class="inst" style="--ic:var(--c2)"><span class="emoji">🎺</span><div><h4>Brass</h4><p>Three trumpet valves.</p></div></div>
+          <div class="inst" style="--ic:var(--c3)"><span class="emoji">↗️</span><div><h4>Arp</h4><p>Hold a chord and it arpeggiates in time; lift fingers to change it.</p></div></div>
+          <div class="inst" style="--ic:var(--c4)"><span class="emoji">🥁</span><div><h4>Drums</h4><p>A labelled pad kit that also writes the 16‑step beat (bake it into a loop layer).</p></div></div>
+          <div class="inst" style="--ic:var(--c5)"><span class="emoji">⦿</span><div><h4>Tombola</h4><p>A physics sequencer: drop bouncing balls into a spinning arena; each wall hit plucks a note.</p></div></div>
+          <div class="inst" style="--ic:var(--c6)"><span class="emoji">🎤</span><div><h4>Sample</h4><p>Record from the mic, then play the clip pitched across the pad — the vocal‑chop move.</p></div></div>
+        </div>
+
+        <div class="grid g2 mt">
+          <figure class="card"><img src="./docs/images/tombola.png" alt="Tombola — a spinning physics arena of bouncing note-balls" /><div class="body"><h3>Tombola</h3><p>Drop bouncing note‑balls into a spinning arena; every wall hit plucks a note.</p></div></figure>
+          <figure class="card"><img src="./docs/images/keys.png" alt="Keys — a real piano keyboard overlay with a chord lit" /><div class="body"><h3>Keys</h3><p>A real piano keyboard overlay — hold several notes for a chord.</p></div></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── looper ──────────────────────────────────────────────── -->
+    <section id="looper">
+      <div class="wrap">
+        <div class="feature">
+          <div class="media"><img src="./docs/images/drums.png" alt="The drum kit and the loop tape" /></div>
+          <div>
+            <h2>Build the song <span class="accent">loop by loop</span></h2>
+            <p>An 8‑track looper rides one drift‑free clock, so every layer stays locked together.</p>
+            <ul>
+              <li><b>Record · overdub · mute · stack · clone</b> any of the 8 tracks</li>
+              <li>Play each layer at <b>½× / 1× / 2×</b></li>
+              <li>Every layer keeps the <b>instrument and sound</b> it was recorded with</li>
+              <li>Knob sweeps are recorded too — the <b>filter automation</b> replays with the loop</li>
+              <li>Tap a loop to jump to <b>its</b> instrument, so the whole song is loop‑by‑loop</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── shark / grid ────────────────────────────────────────── -->
+    <section id="shark">
+      <div class="wrap">
+        <div class="feature flip">
+          <div class="media"><img src="./docs/images/grid.png" alt="Grid view — all 15 instruments playing at once in a 5×3, each cell with its own shark" /></div>
+          <div>
+            <h2>…and a <span class="accent">shark</span> that swims it</h2>
+            <p>A faint ASCII shark cruises the play surface and chases your fingers.</p>
+            <ul>
+              <li>Flip to <b>Grid view</b> (<kbd>9</kbd>) — all 15 voices on screen at once, each its own mini trackpad with its own shark, lit in its loop’s colour</li>
+              <li>Type <kbd>jaws</kbd> for a feeding frenzy</li>
+              <li>Click the logo ×5 and the shark breaks loose to swim the whole app</li>
+              <li>Hold <kbd>\</kbd> for a <b>tape‑stop</b> — the whole machine grinds to a halt, then spins back up</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── controls ────────────────────────────────────────────── -->
+    <section id="controls">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Playable from the keyboard</h2>
+          <p>The hardware mirrors these. Press <kbd>/</kbd> in‑app for the live legend.</p>
+        </div>
+        <div class="keys">
+          <div class="krow"><span class="k"><kbd>A</kbd>…<kbd>;</kbd> <kbd>Q</kbd>…<kbd>P</kbd></span><span class="d">Play scale degrees — hold several for a chord</span></div>
+          <div class="krow"><span class="k"><kbd>1</kbd>–<kbd>8</kbd></span><span class="d">Record → play → mute that loop (and jump to its instrument); <kbd>Shift</kbd> clears</span></div>
+          <div class="krow"><span class="k"><kbd>Space</kbd> / <kbd>Enter</kbd></span><span class="d">Play / stop · <kbd>`</kbd> arm record · <kbd>Del</kbd> undo last loop</span></div>
+          <div class="krow"><span class="k"><kbd>Tab</kbd> · <kbd>F1</kbd>–<kbd>F9</kbd></span><span class="d">Switch instrument · <kbd>[</kbd> <kbd>]</kbd> octave · <kbd>,</kbd> <kbd>.</kbd> scale · <kbd>-</kbd> <kbd>=</kbd> key</span></div>
+          <div class="krow"><span class="k">↑ / ↓</span><span class="d">Keyboard dynamics — louder/brighter, softer/darker</span></div>
+          <div class="krow"><span class="k"><kbd>X</kbd></span><span class="d">Dice — re‑roll a musical sound + groove</span></div>
+          <div class="krow"><span class="k"><kbd>Z</kbd> / <kbd>C</kbd></span><span class="d">Filter sweep · hold <kbd>V</kbd>/<kbd>B</kbd>/<kbd>N</kbd>/<kbd>M</kbd> + dial to tweak Reverb / Bright / Noise / Mod</span></div>
+          <div class="krow"><span class="k"><kbd>9</kbd> · <kbd>0</kbd> · <kbd>F10</kbd></span><span class="d">Grid view · find‑chords guide · PLAY↔NAV (free the cursor)</span></div>
+        </div>
+        <p class="run-note">Full map: <a href="https://github.com/brendanwelsh/chumthesizer/blob/main/KEYBINDS.md">KEYBINDS.md</a></p>
+      </div>
+    </section>
+
+    <!-- ── run it ──────────────────────────────────────────────── -->
+    <section id="run">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2>Run it yourself</h2>
+          <p>Pure TypeScript + Vite. Runs as a browser tab, an Electron desktop app, or a static site.</p>
+        </div>
+        <pre><span class="c"># clone, then:</span>
+npm install
+npm run dev        <span class="c"># Vite dev server → http://127.0.0.1:5173</span>
+npm run app        <span class="c"># build trackpad helper + dial plugin, build, launch Electron (best for hardware)</span>
+npm run build      <span class="c"># production build → dist/</span></pre>
+        <p class="run-note">Click once to start audio, then play. <b>Electron is the best home for the trackpad</b> — it auto‑starts the Raw‑Input helper and unblocks WebHID. Settings and the current pattern persist to <code>localStorage</code>.</p>
+        <div class="center mt">
+          <a class="btn btn-primary" href="./">▶ Or just play it in your browser</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div class="flinks">
+          <a href="./">▶ Play</a>
+          <a href="https://github.com/brendanwelsh/chumthesizer">GitHub</a>
+          <a href="https://github.com/brendanwelsh/chumthesizer/blob/main/BUILD.md">Build &amp; play</a>
+          <a href="https://github.com/brendanwelsh/chumthesizer/blob/main/KEYBINDS.md">Key map</a>
+          <a href="https://github.com/brendanwelsh/chumthesizer/blob/main/DESIGN.md">Design notes</a>
+        </div>
+        <p>Built with TypeScript · Vite · Electron · the Web Audio API · Anime.js. Shark ASCII art + swim logic adapted from the author’s tilde.town <code>~chumthewaters</code> page.</p>
+        <small>No affiliation with Apple, Ulanzi, or Elgato; product names and images are for identification only.</small>
+      </div>
+    </footer>
+  </body>
+</html>

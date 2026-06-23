@@ -2,7 +2,7 @@ import type { Looper, SlotState } from "../loop/looper";
 import { loopColor } from "./loop-colors";
 
 /** The loop tape — one slot per loop. Tap to record a layer, tap again to play/mute;
- *  the speed badge cycles ½×/1×/2×; right-click clears. A keybind hint (1–6) shows the
+ *  the speed badge cycles ½×/1×/2×; right-click clears. A keybind hint (1–8) shows the
  *  per-loop record shortcut. Motion thesis: a recording slot pulses red, a playing slot
  *  fills with a sweeping accent playhead — the chassis is still, the light moves. */
 const SPEED_LABEL: Record<number, string> = { 0.5: "½×", 1: "1×", 2: "2×" };

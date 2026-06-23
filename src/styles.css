@@ -371,7 +371,7 @@ body.started .hint { opacity: 0; }
   border-radius: 12px; padding: 8px 10px 9px; cursor: pointer; min-height: 58px;
   transition: border-color .12s, background .12s, transform .06s;
 }
-/* each slot is PRE-coloured 1–6 so its colour = the colour your fingerprints glow while recording it */
+/* each slot is PRE-coloured 1–8 so its colour = the colour your fingerprints glow while recording it */
 .loop .loop-num { color: var(--lc); }
 .loop:hover { border-color: var(--line-2); }
 .loop:active { transform: translateY(1px); }
@@ -522,7 +522,7 @@ body.started .hint { opacity: 0; }
   .gv-cell::before { animation: none; }
 }
 
-/* F2 debug */
+/* F12 debug */
 #tpdebug { position: fixed; right: 12px; bottom: 12px; z-index: 60; font: 11px ui-monospace, Consolas, monospace; color: #9effd0; background: rgba(0,0,0,0.78); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; white-space: pre; pointer-events: none; display: none; }
 #tpdebug.on { display: block; }
 

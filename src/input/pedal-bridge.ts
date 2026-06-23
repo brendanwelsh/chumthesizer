@@ -17,7 +17,8 @@ import type { StatusCb } from "../types";
 
 const DEFAULT_PORT = 48909;
 const RETRY_MIN_MS = 1000;
-const RETRY_MAX_MS = 5000;
+const RETRY_MAX_MS = 15000; // back off to 15s so the hosted (no-Stream-Deck) site isn't hammering
+                            // localhost forever; the Settings "reconnect" button forces a retry.
 
 export interface PedalHandlers {
   onPress: (i: number) => void;

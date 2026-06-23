@@ -18,7 +18,8 @@ import type { StatusCb, DialHandlers } from "../types";
 
 const DEFAULT_PORT = 48907;
 const RETRY_MIN_MS = 1000;
-const RETRY_MAX_MS = 5000;
+const RETRY_MAX_MS = 15000; // back off to 15s so the hosted (no-Studio) site isn't hammering
+                            // localhost forever; the Settings "reconnect" button forces a retry.
 
 export interface DialBridge {
   /** force an immediate (re)connect attempt */

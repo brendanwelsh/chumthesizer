@@ -15,7 +15,9 @@ import type { SurfaceSink, StatusCb } from "../types";
 
 const DEFAULT_PORT = 48808;
 const RETRY_MIN = 1000;
-const RETRY_MAX = 5000;
+const RETRY_MAX = 15000; // back off to 15s so the hosted (no-helper) site isn't hammering localhost
+                         // forever — the Electron app connects on the first try anyway, and the
+                         // Settings sheet's "reconnect" button forces an immediate retry on demand.
 const MATCH_DIST = 0.09; // normalized distance to consider it the same finger
 const GRACE_MS = 70; // release a voice this long after its finger was last seen. Short, so a fast
                      // lift+retap reads as a NEW hit (you can machine-gun the kick) while still riding

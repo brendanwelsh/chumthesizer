@@ -43,7 +43,7 @@ export function initLegend(root: HTMLElement): Legend {
     ]) +
     group("Loops", [
       [loopKeys, "record → play → mute  (+ jump to its instrument)"],
-      ["⇧ 1–6", "clear that loop"],
+      ["⇧ 1–8", "clear that loop"],
       ["`", "record the next empty loop", "var(--rec)"],
       ["Del", "clear the last loop"],
       ["'", "clone the focused loop"],

@@ -27,7 +27,7 @@ export function initTransport(
   const rec = document.createElement("button");
   rec.className = "tbtn rec";
   rec.innerHTML = `${REC}<span>Rec</span><kbd class="tkey">\`</kbd>`;
-  rec.title = "Record the next loop layer (\`) — or tap a loop slot / press 1–6";
+  rec.title = "Record the next loop layer (\`) — or tap a loop slot / press 1–8";
   rec.onclick = o.onRec;
 
   const tempo = document.createElement("label");
