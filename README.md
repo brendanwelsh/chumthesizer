@@ -7,8 +7,8 @@
 > browser tab or as a desktop app.
 
 <p align="center">
-  <a href="https://chumthesizer.github.io/"><b>▶&nbsp;Play it live</b></a>
-  &nbsp;·&nbsp; <a href="https://chumthesizer.github.io/about.html">Project page</a>
+  <a href="https://brendanwelsh.github.io/chumthesizer/"><b>▶&nbsp;Play it live</b></a>
+  &nbsp;·&nbsp; <a href="https://brendanwelsh.github.io/chumthesizer/about.html">Project page</a>
   &nbsp;·&nbsp; <a href="BUILD.md">Build&nbsp;&amp;&nbsp;play</a>
   &nbsp;·&nbsp; <a href="KEYBINDS.md">Key&nbsp;map</a>
   &nbsp;·&nbsp; <a href="DESIGN.md">Design&nbsp;notes</a>
