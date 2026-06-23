@@ -55,8 +55,8 @@ in its loop's colour.
 ## What it is
 
 A pocket‑operator‑style **groovebox** that lives in the browser and treats a Magic Trackpad 2 like a
-real instrument. The multitouch + Force‑Touch **pressure** surface plays an in‑app Web Audio synth
-(X = pitch, pressure = loudness/brightness), backed by a drum machine, a 16‑step sequencer, and an
+real instrument. The multitouch surface plays an in‑app Web Audio synth
+(X = pitch, finger height = loudness/brightness), backed by a drum machine, a 16‑step sequencer, and an
 8‑track **looper** that records, overdubs, mutes, stacks, clones, and plays layers at ½× / 1× / 2× —
 all on one drift‑free clock. Switch the surface between **15 voices** live (a 5×3 selector above the
 pad); each remembers its own sound. A reactive screen tells you what's going on; a context panel
@@ -77,9 +77,12 @@ playable with a mouse, computer keyboard, or touchscreen, and lights up as you c
   </tr>
 </table>
 
-- **Magic Trackpad 2 — the instrument.** Multitouch + real per‑finger pressure. On Windows no driver
-  exposes Force‑Touch, so a small C# helper (`trackpad-bridge/`) reads the raw HID frames, decodes
-  per‑finger force, and suppresses the OS cursor while you play. Wired USB.
+- **Magic Trackpad 2 — the instrument.** Multitouch. On Windows no driver exposes the trackpad's
+  Force‑Touch (and raw HID is OS‑blocked), so a small C# helper (`trackpad-bridge/`) reads finger
+  contacts via the Windows Raw Input API and suppresses the OS cursor while you play. There's **no
+  per‑finger pressure on Windows**, so **finger height drives dynamics** (top = loud/bright, bottom =
+  soft/dark) — plus contact size on the rare trackpad that reports it. Wired USB. (Real Force‑Touch
+  pressure is a macOS luxury; see DESIGN.md §1.)
 - **Ulanzi D100H dial — the warp.** Turn = the current knob macro (Filter → Bright → Reverb → Mod →
   Noise); press = cycle that macro; the **7 keys are sound presets** — hold one for that sound, hold
   several to *blend* them into a new in‑between voice. It's an **endless encoder**, so the on‑screen
@@ -175,7 +178,7 @@ src/
                  dial · pedalview · visualizer · shark · gridview · recorder · legend
   main.ts        wires inputs → rack → looper → engine + the UI
 electron/main.cjs  desktop shell (HID blocklist disabled so WebHID can claim the trackpad)
-trackpad-bridge/   C# helper — raw HID pressure decode + cursor suppression
+trackpad-bridge/   C# helper — Raw Input multitouch contacts + cursor suppression
 plugins/           UlanziDeck plugin (D100H dial + 7 keys) · Stream Deck plugin (foot pedal)
 ```
 
