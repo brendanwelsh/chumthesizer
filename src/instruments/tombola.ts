@@ -1,7 +1,7 @@
 import type { Engine } from "../audio/engine";
 import type { Instrument, Overlay } from "./instrument";
 
-/** TOMBOLA — the OP-1 toy. Tap the surface to drop bouncing note-balls into a spinning arena;
+/** TOMBOLA — the physics toy. Tap the surface to drop bouncing note-balls into a spinning arena;
  *  every wall hit plucks a note (pitch from the hit angle). A generative, hypnotic sequencer you
  *  steer by where + how often you drop balls. It draws itself on the surface via the Visualizer's
  *  overlayPaint hook, and only runs while it's the active instrument. */

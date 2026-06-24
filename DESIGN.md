@@ -1,4 +1,4 @@
-# Design — magic-trackpad-ulanzi-synth (R&D)
+# Design — chumthesizer (R&D)
 
 ## The dream
 A one-of-a-kind tactile instrument: Magic Trackpad 2 as an expressive multitouch +
@@ -68,7 +68,7 @@ HID device with an already-reverse-engineered protocol; dial → live synth-para
 standard and feels great. The risk is concentrated entirely in §1 (raw trackpad pressure);
 everything else is well-trodden.
 
-## What got built (v0.1) — a Pocket-Operator-style groovebox
+## What got built (v0.1) — a groovebox
 
 It grew past "synth surface" into a little jam machine:
 - **Melodic surface** — multitouch/pressure (or mouse/keyboard/pen) → polyphonic Web Audio

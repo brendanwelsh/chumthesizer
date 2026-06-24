@@ -1,4 +1,4 @@
-/** CHUM-1 LOOPER — a robust, OP-1-tape-style multitrack looper. You play the trackpad
+/** LOOPER — a robust, tape-style multitrack looper. You play the trackpad
  *  (any instrument); a slot captures the *note events* and replays them in sync, so you
  *  stack layers like a loop pedal. It records events (not audio) and re-fires them through
  *  the instrument RACK, so each layer keeps its own instrument + sound and stays live.

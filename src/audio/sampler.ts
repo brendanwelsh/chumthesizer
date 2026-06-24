@@ -3,7 +3,7 @@ import { SCALES, degreeToMidi, midiToFreq, xToDegree } from "./scales";
 
 /** Microphone SAMPLER — record a short clip from the mic, then play it back PITCHED
  *  across the scale so your voice / a beatbox / a found sound becomes a playable
- *  instrument (OP-1 / SP-404 style).
+ *  instrument (sampler / vocal-chop style).
  *
  *  It reuses the exact x → scale-degree → frequency mapping the synth Engine uses,
  *  so the recorded buffer plays from the trackpad just like a synth vibe: x picks the
@@ -32,7 +32,7 @@ export class Sampler {
   private baseFreq = 220;
   private notes = new Map<string, PlayingNote>();
 
-  // ── OP-1-style sample shaping ──
+  // ── sample shaping ──
   trimStart = 0;        // 0..1 of the buffer
   trimEnd = 1;          // 0..1 of the buffer
   reversed = false;     // play it backwards

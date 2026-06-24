@@ -1,9 +1,9 @@
 # chumthesizer
 
-> A tactile, OP‑1‑inspired **groovebox** you play with three real devices: an **Apple Magic Trackpad 2**
+> A tactile **groovebox** you play with three real devices: an **Apple Magic Trackpad 2**
 > as a multi‑instrument surface, an **Ulanzi D100H dial** that warps the sound, and an **Elgato Stream
 > Deck Pedal** for hands‑free looping. **Fifteen voices**, a robust **8‑track looper**, a reactive
-> OP‑1‑style screen — and a shark that cruises the trackpad. Pure **Web Audio**, no plugins; runs in a
+> screen — and a shark that cruises the trackpad. Pure **Web Audio**, no plugins; runs in a
 > browser tab or as a desktop app.
 
 <p align="center">
@@ -63,7 +63,7 @@ in its loop's colour.
 
 ## What it is
 
-A pocket‑operator‑style **groovebox** that lives in the browser and treats a Magic Trackpad 2 like a
+A **groovebox** that lives in the browser and treats a Magic Trackpad 2 like a
 real instrument. The multitouch surface plays an in‑app Web Audio synth
 (X = pitch, finger height = loudness/brightness), backed by a drum machine, a 16‑step sequencer, and an
 8‑track **looper** that records, overdubs, mutes, stacks, clones, and plays layers at ½× / 1× / 2× —

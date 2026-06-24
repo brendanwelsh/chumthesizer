@@ -1,5 +1,5 @@
 /** An *instrument* interprets the trackpad surface (x, y, pressure per finger) its own
- *  way and plays the shared audio engine. CHUM-1's headline: the one Magic-Trackpad
+ *  way and plays the shared audio engine. The headline: the one Magic-Trackpad
  *  surface becomes many instruments — a continuous Synth ribbon, a quantized Keys board,
  *  a Drums pad grid, a pitched mic Sampler — switchable live, and each is loopable.
  *

@@ -1,7 +1,7 @@
 import type { SlotState } from "../loop/looper";
 import { loopColor } from "./loop-colors";
 
-/** The reactive OP-1 screen — a small always-live LCD in the top bar. It mirrors the live
+/** The reactive screen — a small always-live LCD in the top bar. It mirrors the live
  *  state (active instrument, scale/root, tempo, loop activity, dial value) and is the one
  *  place to glance at while jamming. Read-only; driven by a getter polled each frame. */
 export interface ScreenModel {

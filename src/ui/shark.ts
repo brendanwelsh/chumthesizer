@@ -1,5 +1,5 @@
 /** A faint ASCII shark that cruises *inside a play surface* and chases the fingers/cursor over it
- *  (OP-1-style fun). Art + swim logic adapted from the user's tilde.town ~chumthewaters page
+ *  (playful fun). Art + swim logic adapted from the user's tilde.town ~chumthewaters page
  *  (public/shark-frames.js → window.SHARK_DATA). One instance per tank, so the hero board AND every
  *  mini board in the grid view can each have their own. Returns a handle for the Jaws easter egg,
  *  relayout, and pause (the grid minis sleep while the grid is closed). 🦈 */

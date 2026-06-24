@@ -1,6 +1,6 @@
-# Magic Trackpad + Ulanzi Synth — build & play
+# chumthesizer — build & play
 
-> Repo: `magic-trackpad-ulanzi-synth`.
+> Repo: `chumthesizer`.
 
 A tactile web synth. Play it with your **mouse, computer keyboard, or a touchscreen
 right now** — and when you plug in an **Apple Magic Trackpad 2** it lights up with real

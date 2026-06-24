@@ -245,7 +245,7 @@ export function initPanel(
   };
   refreshers.push(refreshDrums);
 
-  // ── SAMPLE (the OP-1 sampler: record / load, then play it pitched across the pad) ──
+  // ── SAMPLE (the mic sampler: record / load, then play it pitched across the pad) ──
   const sample = body("Sample");
   const smRow1 = document.createElement("div"); smRow1.className = "ctl-row"; sample.append(smRow1);
   const recBtn = document.createElement("button"); recBtn.className = "sbtn"; recBtn.textContent = "● Record";

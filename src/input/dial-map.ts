@@ -6,7 +6,7 @@
  *  learns the real mapping in ~10 seconds: press the 7 keys in the on-screen order. */
 
 const KEYS = 7;
-const STORE = "chum-1.dialmap.v1";
+const STORE = "chumthesizer.dialmap.v1";
 
 export class DialMap {
   private m = new Map<number, number>(); // physical bridge index → canonical slot

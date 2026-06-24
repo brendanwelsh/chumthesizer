@@ -1,4 +1,4 @@
-/** Synthesized drum voices, 808/Pocket-Operator flavored — no samples. Sounds are
+/** Synthesized drum voices, 808-flavored — no samples. Sounds are
  *  organized into a small **library** grouped by category (Kick, Snare, Hat, Clap,
  *  Tom, Perc, FX) with **variants** in each. Every pad/track holds an *assignment*
  *  into that library, so you build a kit by dragging sounds onto pads — the

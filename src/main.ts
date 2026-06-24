@@ -416,7 +416,7 @@ const previewSound = (): void => {
 const pickSound = (name: string): void => { setSound(name); previewSound(); };   // dial-key behaviour
 
 // HOLD the sound keys: hold one and it's that sound; hold several at once and it BLENDS them into a
-// new in-between voice (the OP-1-ish "make more sounds" move). Release keeps the current sound.
+// new in-between voice (the "make more sounds" move). Release keeps the current sound.
 const heldSoundKeys = new Set<number>();
 const blendHeldSounds = (): void => {
   const names = [...heldSoundKeys].map((i) => SOUND_NAMES[i]).filter(Boolean);
@@ -468,7 +468,7 @@ const KNOB_MODS: Record<string, { key: "reverb" | "brightness" | "noise" | "fm";
 };
 const heldMods: string[] = [];
 
-// PUSH the knob to cycle what TURNING it controls (OP-1 style). "Filter" is the recorded DJ sweep;
+// PUSH the knob to cycle what TURNING it controls. "Filter" is the recorded DJ sweep;
 // the rest are sound macros that reshape the held note live. Held V/B/N/M still override directly.
 const KNOB_MODES = [
   { key: "filter", label: "Filter" },
@@ -510,7 +510,7 @@ const knobTurn = (delta: number): void => {
 };
 const cycleKnobMode = (): void => { knobMode = (knobMode + 1) % KNOB_MODES.length; dialWidget.setMode(KNOB_MODES[knobMode].label); };
 
-// ── OP-1 whimsy: TAPE STOP — drag the whole machine to a halt (tempo grinds down, the DJ filter
+// ── TAPE STOP whimsy — drag the whole machine to a halt (tempo grinds down, the DJ filter
 // closes off, the dial visibly sweeps), then spin it back up. Hold the pedal's middle switch, or
 // hold \ on the keyboard. The looper + groove both ride seq.bpm so EVERYTHING slows together. ──
 let tapeStopping = false, savedBpm = 0, savedPerf = 0, tapeRAF = 0;
@@ -897,7 +897,7 @@ const paintDebug = (): void => {
 requestAnimationFrame(paintDebug);
 
 // ── persistence ──────────────────────────────────────────────────────────────
-const STORE_KEY = "chum-1.v2"; // bumped: ship the clean defaults + new kit (old saved state is ignored)
+const STORE_KEY = "chumthesizer.v2"; // bumped: ship the clean defaults + new kit (old saved state is ignored)
 function loadState(): void {
   try {
     const raw = localStorage.getItem(STORE_KEY);

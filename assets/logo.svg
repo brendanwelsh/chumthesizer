@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="Magic Trackpad + Ulanzi Synth">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="chumthesizer">
   <defs>
     <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#1d1d1d"/>
@@ -6,7 +6,7 @@
     </linearGradient>
   </defs>
 
-  <!-- rounded device badge (Teenage Engineering / Pocket Operator vibe) -->
+  <!-- rounded device badge -->
   <rect x="16" y="16" width="448" height="448" rx="104" fill="url(#badge)" stroke="#3a3a3a" stroke-width="3"/>
 
   <!-- multitouch finger dots across the top -->

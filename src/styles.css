@@ -1,9 +1,9 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   CHUM-1 — OP-1-inspired instrument, Apple-clean execution.
+   chumthesizer — a tactile instrument, Apple-clean execution.
    Grayscale chassis + a few functional accents (red = record only). No emojis.
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* surfaces — warm light "OP-1 chassis" (was raw near-black). Playful, not grungy. */
+  /* surfaces — warm light chassis (was raw near-black). Playful, not grungy. */
   --bg0: #e7e8ee;   /* page base */
   --bg1: #f2f3f7;   /* lifted panels */
   --bg2: #fafbfd;   /* tiles / inputs */
@@ -92,7 +92,7 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 #playmode.nav { background: color-mix(in srgb, var(--warn) 22%, var(--bg2)); border-color: var(--warn); color: color-mix(in srgb, var(--warn) 65%, var(--ink)); }
 .top-tools { display: flex; align-items: center; gap: var(--s2); }
 
-/* ── reactive screen (the OP-1 LCD) — center of the top bar ──────────────── */
+/* ── reactive screen (the LCD) — center of the top bar ──────────────── */
 .screen {
   flex: 0 1 460px; min-width: 220px; max-width: 560px; height: 40px;
   display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--s3);
