@@ -130,7 +130,12 @@ export function initGridView(
   // column count — 15 voices lay out as a balanced 5×3 (3×5 when narrow). Kept in sync with the
   // stagger grid so the "from centre" ripple stays true.
   const colsFor = (): number => {
-    const c = window.innerWidth < 760 ? 3 : 5;
+    const w = window.innerWidth, h = window.innerHeight;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    // on a phone the CSS forces a vertical scroll-down board: 2 fat columns in
+    // portrait, 4 in landscape — keep the stagger grid in sync so the "from centre"
+    // ripple stays true. On desktop, JS drives the columns directly (3 narrow, 5 wide).
+    const c = coarse ? (w > h ? 4 : 2) : (w < 760 ? 3 : 5);
     return Math.min(c, cells.length);
   };
   let cols = colsFor();
