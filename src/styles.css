@@ -186,8 +186,12 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 /* on a touch-first device (phone/tablet): float the trackpad to the top, and make every tappable
    control finger-sized (~44px+ — Apple/Material minimum). Gated on coarse so desktop is untouched. */
 @media (pointer: coarse) {
-  /* ordering of the whole stack is handled in the MOBILE/TOUCH section at the
-     bottom of this file (trackpad → record → config → optional hardware) */
+  /* any touch device: let the page scroll naturally and never clip the (wrapping) top bar.
+     The LAYOUT is unchanged from desktop — same pieces, same order, the trackpad and the dial
+     stay front-and-centre — it just stacks into one scrolling column on a narrow screen. */
+  html, body { height: auto; min-height: 100%; overflow: visible; overflow-x: hidden; }
+  #app { grid-template-rows: auto auto auto; height: auto; min-height: 100vh; overflow: visible; }
+  .workspace .surface-col { order: -1; }              /* the trackpad is what you play — put it first */
   .inst-tab { min-height: 46px; }                     /* the 15 instrument buttons */
   .tbtn { min-height: 46px; padding: 11px 16px; font-size: 14px; }   /* Play / Rec */
   .modebtn { height: 44px; }                          /* PLAY · CHORD · LATCH · GUIDE · KEYS */
@@ -590,38 +594,12 @@ body.started .hint { opacity: 0; }
 @media (max-width: 560px) { .lg-cols { grid-template-columns: 1fr; } }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   MOBILE / TOUCH — one clean vertical scroll.
-   The app is a single scrolling column ordered the way you actually play it:
-   PLAY (trackpad) → RECORD (transport + the 8 loop slots) → config →
-   the optional hardware (dial · pedal), which is purely decorative without the
-   physical device, so it sinks to the bottom. Every record control is finger-
-   sized and reachable. Gated on `pointer: coarse`, so desktop — even a narrow
-   window — keeps its three-column layout untouched.
+   MOBILE / TOUCH — the SAME app as desktop (same pieces, same order: trackpad +
+   dial up top, the 8 loop slots in their tape at the bottom), just stacked into
+   one scrolling column. The only thing reworked here is the multi/grid view, so
+   it scrolls DOWN the page instead of being squeezed into one fixed box.
    ────────────────────────────────────────────────────────────────────────── */
 @media (pointer: coarse) {
-  html, body { height: auto; min-height: 100%; overflow: visible; overflow-x: hidden; }
-
-  /* flatten workspace + tape so their children become orderable siblings of #app */
-  #app { display: flex; flex-direction: column; height: auto; min-height: 100vh; gap: var(--s3); overflow: visible; }
-  .workspace, .tape { display: contents; }
-
-  .topbar      { order: 0; flex-wrap: wrap; row-gap: var(--s2); }
-  .brand       { min-width: 0; }                                              /* let the tools share the row */
-  .surface-col { order: 1; width: 100%; max-width: 560px; margin: 0 auto; }   /* the trackpad you play */
-  .transport   { order: 2; justify-content: center; width: 100%; }
-  .loops       { order: 3; width: 100%; }                                     /* the 8 record buttons */
-  .config      { order: 4; width: 100%; max-width: 560px; margin: 0 auto; overflow: visible; }
-  .dial-col    { order: 5; width: 100%; max-width: 210px; margin: 0 auto; }   /* optional hardware → bottom */
-  .pedal-col   { order: 6; }
-
-  /* the 8 record buttons: a full-width grid of fat, finger-sized slots — all visible at once */
-  .loops { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s2); }
-  .loop  { min-height: 66px; }
-
-  /* the foot-pedal widget is decorative on a phone → center it under the dial */
-  .tape .pedal-col { width: 100%; max-width: 210px; margin: 0 auto; align-self: center; }
-
-  /* ── multi / grid view: a full-screen VERTICAL scroll-down, not a squeezed fit ── */
   .grid-view { top: 0; padding: var(--s3) var(--s3) var(--s5); overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .gv-head   { position: sticky; top: 0; z-index: 4; padding: var(--s2) 0 var(--s3);
                background: linear-gradient(180deg, var(--bg0) 75%, transparent); }
@@ -635,12 +613,8 @@ body.started .hint { opacity: 0; }
 }
 
 /* phone LANDSCAPE (wide + short): give the trackpad real size (driven by height,
-   not the tiny vh that crushed it) and let the content use the width — no thin strip,
-   no clipping; the page just scrolls. */
+   not the tiny vh that crushed it to a sliver) and lay the grid view out 4-wide. */
 @media (pointer: coarse) and (orientation: landscape) {
   :root { --board-h: clamp(170px, 50vh, 280px); }
-  .surface-col { max-width: min(92vw, calc(var(--board-h) * 1.4)); }
-  .config      { max-width: 92vw; }
-  .loops       { max-width: 760px; margin: 0 auto; }
-  .gv-board    { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .gv-board { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
