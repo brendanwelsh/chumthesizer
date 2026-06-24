@@ -330,6 +330,23 @@ $("transport").prepend(volWrap);
 
 // (device layout is fixed now: pedal groups with the loop tape; knob sits beside the trackpad.)
 
+// MOBILE layout: the Sound/Mix sliders are a "set once" panel — on a phone you almost never touch
+// them while playing, yet as the workspace's right-hand column they'd sit in the MIDDLE of the
+// scroll and push the loop tape (the controls you actually use — record / re-record layers) to the
+// very bottom. So on a touch device move that one panel to the END of the page; the trackpad, dial,
+// and loop tape stay up top in the order you play them. Desktop keeps it as the right-hand column.
+const appEl = $("app");
+const workspaceEl = document.querySelector(".workspace");
+const configEl = document.querySelector(".config");
+const coarseMq = window.matchMedia("(pointer: coarse)");
+const placeConfig = (): void => {
+  if (!appEl || !workspaceEl || !configEl) return;
+  if (coarseMq.matches) appEl.appendChild(configEl);     // phone: sliders to the bottom of the scroll
+  else workspaceEl.appendChild(configEl);                // desktop: back to the workspace's right column
+};
+placeConfig();
+coarseMq.addEventListener("change", placeConfig);
+
 // ── reactive screen ─────────────────────────────────────────────────────────
 let perf = 0;
 initScreen($("screen"), () => ({

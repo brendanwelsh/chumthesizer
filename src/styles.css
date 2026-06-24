@@ -199,6 +199,9 @@ select option { background: #1b1b1b; color: #f4f4f4; }
   .loop { min-height: 64px; }                         /* the loop slots */
   select { min-height: 40px; }                        /* sound / scale / root dropdowns */
   input[type=range] { height: 30px; }                 /* fatter slider hit area (tempo, sound sliders) */
+  /* the Sound/Mix panel is relocated to the bottom of the page on a phone (see main.ts) — centre it
+     like the rest of the stacked column now that it's a direct child of #app */
+  #app > .config { justify-self: center; width: 100%; max-width: 460px; }
 }
 /* the canvas (finger contacts + waveform) sits ABOVE the guide overlay, so your fingerprints
    show ON TOP of the piano/drum/strings keys — only the shark (z3) floats over everything. */
