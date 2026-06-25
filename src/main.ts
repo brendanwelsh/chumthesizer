@@ -301,6 +301,9 @@ const captureBeat = (): void => {
   if (events.length === 0 || slot < 0) return;
   if (!running) setRunning(true);
   looper.loadEvents(slot, events, "drums");
+  // the beat has MOVED into the loop layer — clear the step grid so the live drum machine and the
+  // captured loop don't both play it (double-trigger). Design a fresh beat for the next layer.
+  seq.clear();
   saveState();
 };
 let countingIn = false;

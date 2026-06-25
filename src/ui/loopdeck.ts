@@ -41,6 +41,9 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
     b.onclick = () => { if (cleared || moved) { cleared = false; return; } (onPress ? onPress(i) : looper.toggle(i)); };
 
     const spd = b.querySelector(".loop-spd") as HTMLElement;
+    // the speed badge sits inside the slot button — keep its presses to itself so they never arm the
+    // slot's long-press-to-clear timer (a slow tap / hold-to-read on the badge must NOT wipe the loop).
+    spd.addEventListener("pointerdown", (e) => e.stopPropagation());
     spd.onclick = (e) => { e.stopPropagation(); const s = looper.cycleSpeed(i); spd.textContent = SPEED_LABEL[s] ?? `${s}×`; };
 
     slots.push(b);
