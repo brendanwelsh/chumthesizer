@@ -79,7 +79,9 @@ export class Visualizer {
       ctx.fillRect(0, 0, w, h);
     }
 
-    this.drawGuides(ctx, w, h);
+    // the pitch ruler + per-degree columns only make sense for melodic voices — hide them on
+    // Drums / Tombola / Sampler, where "C D E G A…" along the bottom is meaningless clutter.
+    if (this.melodicActive()) this.drawGuides(ctx, w, h);
 
     // back waveform
     this.analyser.getByteTimeDomainData(this.wave);
