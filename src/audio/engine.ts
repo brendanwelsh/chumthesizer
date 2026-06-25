@@ -171,8 +171,16 @@ export class Engine {
       v.setPressure(pressure);
       v.setY(y);
       v.setPan(pan);
-      if (params.glide) v.setFreq(this.freqFromDegree(degs[i] ?? degs[0]));
+      // a ribbon/band note ALWAYS follows your finger's pitch (that's the whole point of dragging it);
+      // `glide` only chooses how it travels — a smooth portamento, or a quick snap to the new degree.
+      v.setFreq(this.freqFromDegree(degs[i] ?? degs[0]), params.glide ? 0.08 : 0.012);
     });
+  }
+
+  /** Update just the loudness/brightness of a held note (struck keys: vertical = dynamics while held). */
+  setPressureFor(id: string, pressure: number): void {
+    const keys = this.chordKeys.get(id) ?? [id];
+    for (const k of keys) this.voices.get(k)?.setPressure(pressure);
   }
 
   /** For the computer keyboard, which plays exact scale degrees. */
@@ -195,6 +203,17 @@ export class Engine {
     for (const v of this.voices.values()) v.release();
     this.voices.clear();
     this.chordKeys.clear();
+  }
+
+  /** Read-only probes for self-tests/automation. */
+  voiceCount(): number { return this.voices.size; }
+  voiceFrequencies(): number[] { return [...this.voices.values()].map((v) => v.frequency); }
+  /** RMS of the live processed output — a simple "is sound happening" probe. */
+  outputRms(): number {
+    const buf = new Float32Array(this.analyser.fftSize);
+    this.analyser.getFloatTimeDomainData(buf);
+    let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+    return Math.sqrt(s / buf.length);
   }
 
   /** Quickly duck + restore the master to kill ringing reverb/delay tails — a real "stop the

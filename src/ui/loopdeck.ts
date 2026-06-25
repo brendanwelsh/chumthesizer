@@ -20,9 +20,25 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
       `<div class="loop-top"><span class="loop-num">${i + 1}</span><span class="loop-inst"></span><span class="loop-key">${keyHint(i)}</span></div>` +
       `<span class="loop-state">empty</span>` +
       `<span class="loop-spd">1×</span>`;
-    b.title = `Loop ${i + 1} — tap to record / play / mute and jump to its instrument. Speed badge = ½×/2×. Right-click to clear.`;
-    b.onclick = () => (onPress ? onPress(i) : looper.toggle(i));
+    b.title = `Loop ${i + 1} — tap to record / play / mute and jump to its instrument. Speed badge = ½×/2×. Long-press (or right-click) to clear.`;
     b.oncontextmenu = (e) => { e.preventDefault(); looper.clear(i); };
+
+    // TAP cycles the slot; LONG-PRESS clears it (the finger-friendly equivalent of right-click, so a
+    // loop is removable on a phone where there's no right-click). A drag past a few px = a scroll,
+    // which cancels the long-press AND the tap, so scrolling the page never fires a loop.
+    let lpTimer = 0, cleared = false, sx = 0, sy = 0, moved = false;
+    b.addEventListener("pointerdown", (e) => {
+      cleared = false; moved = false; sx = e.clientX; sy = e.clientY;
+      lpTimer = window.setTimeout(() => { cleared = true; looper.clear(i); }, 500);
+    });
+    const cancelLP = (): void => { window.clearTimeout(lpTimer); };
+    b.addEventListener("pointermove", (e) => {
+      if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) { moved = true; cancelLP(); }
+    });
+    b.addEventListener("pointerup", cancelLP);
+    b.addEventListener("pointercancel", () => { moved = true; cancelLP(); });
+    b.addEventListener("pointerleave", cancelLP);
+    b.onclick = () => { if (cleared || moved) { cleared = false; return; } (onPress ? onPress(i) : looper.toggle(i)); };
 
     const spd = b.querySelector(".loop-spd") as HTMLElement;
     spd.onclick = (e) => { e.stopPropagation(); const s = looper.cycleSpeed(i); spd.textContent = SPEED_LABEL[s] ?? `${s}×`; };

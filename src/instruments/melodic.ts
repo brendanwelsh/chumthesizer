@@ -11,6 +11,7 @@ import { NOTE_NAMES } from "../audio/scales";
  *  so each "pad" remembers its own timbre. */
 export class MelodicInstrument implements Instrument {
   private activeIds = new Set<string>();
+  private lastDeg = new Map<string, number>();   // struck: the key/string each finger last sounded (for drag re-pluck)
 
   constructor(
     private engine: Engine,
@@ -40,15 +41,23 @@ export class MelodicInstrument implements Instrument {
 
   down(id: string, x: number, y: number, pressure: number): void {
     this.activeIds.add(id);
-    if (this.guide === "strings") this.engine.playDegree(id, this.stringDegree(x, y), pressure);
-    else if (this.struck) this.engine.playDegree(id, this.degreeAt(x), pressure);
+    if (this.guide === "strings") { const d = this.stringDegree(x, y); this.lastDeg.set(id, d); this.engine.playDegree(id, d, pressure); }
+    else if (this.struck) { const d = this.degreeAt(x); this.lastDeg.set(id, d); this.engine.playDegree(id, d, pressure); }
     else this.engine.playXY(id, x, y, pressure);
   }
   move(id: string, x: number, y: number, pressure: number): void {
-    if (!this.struck) this.engine.updateXY(id, x, y, pressure);   // struck = no slide (clean, no glissando pile-up)
+    // ribbon / bands (non-struck): the note glides to follow your finger (theremin).
+    if (!this.struck) { this.engine.updateXY(id, x, y, pressure); return; }
+    // struck keys / strings: dragging onto a NEW key or string re-plucks it there — that's a
+    // keyboard glissando, and on guitar/bass it's how you STRUM (drag across the strings).
+    const d = this.guide === "strings" ? this.stringDegree(x, y) : this.degreeAt(x);
+    if (this.lastDeg.get(id) === d) { this.engine.setPressureFor(id, pressure); return; }   // same key — just track dynamics
+    this.lastDeg.set(id, d);
+    this.engine.playDegree(id, d, pressure);   // re-fire at the new pitch (playDegree releases the old voice for this id first)
   }
   up(id: string): void {
     this.activeIds.delete(id);
+    this.lastDeg.delete(id);
     this.engine.release(id);
   }
   panic(): void {

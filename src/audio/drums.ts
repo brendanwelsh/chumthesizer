@@ -82,7 +82,11 @@ export class DrumKit {
   /** how many pads/tracks this kit holds (= sequencer tracks). */
   get padCount(): number { return this.assignment.length; }
 
+  /** total hits triggered — a read-only counter for self-tests (how many drum voices have fired). */
+  hitCount = 0;
+
   trigger(pad: number, time: number, accent = false): void {
+    this.hitCount++;
     this.play(this.assignment[pad] ?? 0, time, accent ? 1.3 : 1);
   }
 

@@ -168,16 +168,19 @@ export class Voice {
     this.panner.pan.setTargetAtTime(clampPan(pan), this.ctx.currentTime, 0.05);
   }
 
-  setFreq(freq: number): void {
+  /** Current base frequency (Hz) — read-only, for self-tests/automation. */
+  get frequency(): number { return this.hz; }
+
+  setFreq(freq: number, tc = 0.04): void {
     if (this.released) return;
     this.hz = freq;
     const t = this.ctx.currentTime;
     const intervalRatio = Math.pow(2, params.interval / 12);
-    this.osc1.frequency.setTargetAtTime(freq, t, 0.04);
-    this.osc2.frequency.setTargetAtTime(freq * intervalRatio, t, 0.04);
+    this.osc1.frequency.setTargetAtTime(freq, t, tc);
+    this.osc2.frequency.setTargetAtTime(freq * intervalRatio, t, tc);
     const subDiv = Math.pow(2, Math.max(0, params.subOctave));
-    this.sub.frequency.setTargetAtTime(freq / subDiv, t, 0.04);
-    this.fmOsc.frequency.setTargetAtTime(freq * params.fmRatio, t, 0.04);
+    this.sub.frequency.setTargetAtTime(freq / subDiv, t, tc);
+    this.fmOsc.frequency.setTargetAtTime(freq * params.fmRatio, t, tc);
   }
 
   /** Re-read the live timbre params and morph THIS held note toward them — so turning the knob /

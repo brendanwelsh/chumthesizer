@@ -13,6 +13,10 @@ export class Sequencer {
   playing = false;
   recording = false;
   metronome = false;                              // a click track on the quarter notes
+  /** Whether the step pattern SOUNDS. The drum grid is the Drums instrument's design surface — it
+   *  only audibly plays while you're on Drums building a beat. To make a beat part of the song you
+   *  record/capture it into a loop layer, so pressing Play never auto-blasts a global drum track. */
+  audible = false;
   clickFn: ((time: number, accent: boolean) => void) | null = null;
 
   private current = 0;
@@ -22,11 +26,12 @@ export class Sequencer {
   private queue: Array<{ step: number; time: number }> = [];
 
   constructor(private ctx: AudioContext, private kit: DrumKit) {
+    // start EMPTY — no mystery auto-beat. Drums are added by recording/capturing them as a loop layer.
     this.pattern = Array.from({ length: this.tracks }, () => new Array(this.steps).fill(false));
-    this.loadDefaultGroove();
   }
 
-  private loadDefaultGroove(): void {
+  /** A starter beat for the Drums design grid (Dice / a "load groove" action) — never auto-played. */
+  loadDefaultGroove(): void {
     const on = (track: number, steps: number[]) => steps.forEach((s) => (this.pattern[track][s] = true));
     on(0, [0, 8, 10]); // kick
     on(1, [4, 12]); // snare
@@ -102,10 +107,14 @@ export class Sequencer {
   private scheduleStep(step: number, time: number): void {
     if (this.metronome && this.clickFn && step % 4 === 0) this.clickFn(time, step === 0);   // quarter-note click
     const swung = step % 2 === 1 ? time + this.secondsPerStep() * this.swing : time;
-    for (let tr = 0; tr < this.tracks; tr++) {
-      if (this.pattern[tr][step]) this.kit.trigger(tr, swung);
+    // only SOUND the step pattern while you're designing it on the Drums instrument; otherwise the
+    // grid is silent and the beat lives in a recorded loop layer (no global auto-drums under Play).
+    if (this.audible) {
+      for (let tr = 0; tr < this.tracks; tr++) {
+        if (this.pattern[tr][step]) this.kit.trigger(tr, swung);
+      }
     }
-    this.queue.push({ step, time: swung });
+    this.queue.push({ step, time: swung });   // always queue for the visual playhead (beat dots / screen)
   }
 
   /** The step currently sounding, for the UI playhead. -1 when stopped. */

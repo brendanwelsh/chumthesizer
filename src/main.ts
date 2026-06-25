@@ -391,6 +391,9 @@ rack.onActiveChange((id) => {
     engine.applyParams(); engine.setBrightness(params.brightness);
     prevMelodic = id;
   }
+  // the drum step-grid only SOUNDS while Drums is the active instrument (it's the drum machine's
+  // design surface); under any other instrument the beat lives in a recorded loop, not a global track
+  seq.audible = id === "drums";
   // Tombola only runs (physics + plays + paints) while it's the active instrument
   tombola.setActive(id === "tombola");
   if (viz) viz.overlayPaint = id === "tombola" ? (ctx, w, h) => tombola.paint(ctx, w, h) : null;
@@ -399,6 +402,7 @@ rack.onActiveChange((id) => {
   syncChordBtn?.();   // params.chord is per-instrument — keep the CHORD button in sync after a swap
 });
 instSwitch.setActive(rack.active);
+seq.audible = rack.active === "drums";   // initial: only audible if we boot straight into Drums
 overlay.set(rack.overlay());
 board.classList.toggle("yaxis-on", MELODIC.includes(rack.active));
 
@@ -882,6 +886,13 @@ let ctlSeq = 0;
   contacts: () => [...contacts.values()].map((c) => ({ id: c.id, x: c.x, y: c.y, p: c.pressure })),   // live voices (for multitouch tests)
   dice: () => dice(),
   state: () => ({ running, instrument: rack.active, perf, bpm: seq.bpm, sound: params.presetName, rec: looper.recordingSlot(), loops: Array.from({ length: looper.count }, (_, i) => looper.stateOf(i)), loopInsts: Array.from({ length: looper.count }, (_, i) => looper.instOf(i)) }),
+  // read-only probes for self-tests: voice pitches, output level, drum-grid audibility
+  voices: () => engine.voiceFrequencies(),
+  voiceCount: () => engine.voiceCount(),
+  rms: () => engine.outputRms(),
+  seqInfo: () => ({ audible: seq.audible, steps: seq.snapshot().reduce((n, row) => n + row.filter(Boolean).length, 0) }),
+  drumHits: () => kit.hitCount,
+  liveContacts: () => contacts.size,
 };
 
 // ── drop held notes when the window loses focus / hides ─────────────────────
