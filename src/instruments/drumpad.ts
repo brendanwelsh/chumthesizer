@@ -54,6 +54,13 @@ export class DrumInstrument implements Instrument {
   move(): void { /* drums fire on tap only */ }
   up(): void { /* one-shots, nothing held */ }
   panic(): void { /* one-shots, nothing held */ }
+  /** computer keyboard: key n → pad n (wrapping), centred in its cell — real finger drumming */
+  keyPos(deg: number): { x: number; y: number } {
+    const padN = this.cols * this.rows;
+    const pad = ((deg % padN) + padN) % padN;
+    return { x: ((pad % this.cols) + 0.5) / this.cols, y: (Math.floor(pad / this.cols) + 0.5) / this.rows };
+  }
+  pitchSpan(): number | null { return null; }   // a pad grid has no left-to-right pitch ruler
   overlay(): Overlay {
     const labels = Array.from({ length: this.cols * this.rows }, (_, i) => this.kit.soundOf(this.trackOf(i)).name);
     return { kind: "grid", cols: this.cols, rows: this.rows, labels };

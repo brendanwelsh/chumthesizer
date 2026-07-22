@@ -5,6 +5,8 @@ export interface TransportUI {
   setRunning(b: boolean): void;
   setRec(b: boolean): void;
   syncTempo(bpm: number): void;
+  /** which loop slot the Rec button will record into next (-1 = none / already recording). */
+  setNext(slot: number): void;
 }
 
 const PLAY = '<svg class="gly" viewBox="0 0 12 12"><path d="M2 1.5l8 4.5-8 4.5z" fill="currentColor"/></svg>';
@@ -26,9 +28,10 @@ export function initTransport(
 
   const rec = document.createElement("button");
   rec.className = "tbtn rec";
-  rec.innerHTML = `${REC}<span>Rec</span><kbd class="tkey">\`</kbd>`;
-  rec.title = "Record the next loop layer (\`) — or tap a loop slot / press 1–8";
+  rec.innerHTML = `${REC}<span>Rec</span><em class="rec-next"></em><kbd class="tkey">\`</kbd>`;
+  rec.title = "Record the next loop layer (\`) — or tap a loop slot / press 1–8. Tap again to stop.";
   rec.onclick = o.onRec;
+  const recNext = rec.querySelector(".rec-next") as HTMLElement;
 
   const tempo = document.createElement("label");
   tempo.className = "tempo";
@@ -46,5 +49,6 @@ export function initTransport(
     setRunning(b) { setRunGlyph(b); },
     setRec(b) { rec.classList.toggle("on", b); },
     syncTempo(v) { slider.value = String(Math.round(v)); bpm.textContent = String(Math.round(v)); },
+    setNext(slot) { recNext.textContent = slot >= 0 ? `→ ${slot + 1}` : ""; },   // "Rec → 3" = where it'll land
   };
 }

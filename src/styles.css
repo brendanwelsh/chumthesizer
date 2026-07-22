@@ -2,6 +2,14 @@
    chumthesizer — a tactile instrument, Apple-clean execution.
    Grayscale chassis + a few functional accents (red = record only). No emojis.
    ─────────────────────────────────────────────────────────────────────────── */
+/* Outfit (variable, OFL — src/fonts/OFL.txt): a geometric-rounded sans that matches the round
+   logo mark. Self-hosted so the Electron file:// build and GitHub Pages both work offline. */
+@font-face {
+  font-family: "Outfit";
+  src: url("./fonts/outfit-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
 :root {
   /* surfaces — warm light chassis (was raw near-black). Playful, not grungy. */
   --bg0: #e7e8ee;   /* page base */
@@ -18,15 +26,18 @@
   --rec: #ff453a;        /* recording / disconnected */
   --warn: #ffb02e;       /* reconnecting */
   --ok: #2fbf63;         /* connected */
-  --accent: #19b6d8;     /* selection — pulled toward the cyan loop color */
+  --accent: #14c5e1;     /* selection — LOOP 1's cyan (#19e3ff), darkened just enough to read on the light chassis */
+  --brand: #258fd3;      /* the logo's own blue, sampled from chum-logo.png — the wordmark matches the mark */
   --screen-bg: #f1f3f7;
   --screen-fg: #1b1c22;
   --shadow-1: 0 1px 2px rgba(20, 22, 30, 0.10);
   --shadow-2: 0 14px 36px rgba(20, 22, 30, 0.18);
   /* spacing scale */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 22px; --s6: 30px;
-  /* board height — the hero size; one source of truth, clamped to the window */
-  --board-h: clamp(240px, 46vh, 500px);
+  /* board height — the hero size; one source of truth, clamped to the window.
+     The cap scales with the viewport (a 4K/maximized desktop window used to strand a tiny
+     500px pad in a sea of empty page). */
+  --board-h: clamp(240px, 50vh, 880px);
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -36,7 +47,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;   /* no pull-to-refresh / bounce when playing on a phone */
-  font-family: -apple-system, "SF Pro Text", "Inter", system-ui, "Segoe UI", sans-serif;
+  font-family: "Outfit", -apple-system, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
   color: var(--ink);
   background:
     radial-gradient(1100px 760px at 72% -12%, #ffffff 0%, var(--bg0) 60%);
@@ -50,7 +61,7 @@ body {
 
 select, button, input { font-family: inherit; }
 select { color: var(--ink); }
-select option { background: #1b1b1b; color: #f4f4f4; }
+select option { background: var(--bg2); color: var(--ink); }
 /* keyboard-only focus ring — :focus-visible never fires on mouse/touch, so the look is untouched
    for pointer users, but Tab-navigators can finally see where they are. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
@@ -61,20 +72,24 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 /* ── app shell: a 3-row stack that reflows, never clips ──────────────────── */
 #app {
   display: grid;
-  grid-template-rows: 52px minmax(0, 1fr) auto;   /* topbar · workspace (hero) · LOOP CONTROL (bottom) */
+  grid-template-rows: auto minmax(0, 1fr) auto;   /* topbar · workspace (hero) · LOOP CONTROL (bottom) */
   height: 100vh;
   gap: var(--s3);
   padding: var(--s3) var(--s4) var(--s4);
   overflow: hidden;
+  /* ultrawide / 4K: cap the console's width and centre it — the content's own max sizes
+     (hero + flanks ≈ 2150px) stop growing anyway, so past this the page just went blank-at-the-edges */
+  max-width: 2160px;
+  margin: 0 auto;
 }
 
-/* ── top bar ─────────────────────────────────────────────────────────────── */
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+/* ── top bar — wraps instead of clipping when the window narrows (its row is auto-height) ── */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); row-gap: var(--s2); flex-wrap: wrap; min-height: 52px; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 230px; }
 .logo { height: 38px; width: auto; display: block; opacity: 1; cursor: pointer; transition: transform .12s; }
 .logo:hover { transform: scale(1.06) rotate(-4deg); }
-.mark { font-weight: 800; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); font-family: "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif; }
-.mark-accent { color: var(--accent); }
+.mark { font-weight: 700; font-size: 24px; letter-spacing: -0.035em; color: var(--ink); font-family: "Outfit", -apple-system, system-ui, sans-serif; }
+.mark-accent { color: var(--brand); }
 
 .iconbtn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -100,7 +115,7 @@ select option { background: #1b1b1b; color: #f4f4f4; }
   background: linear-gradient(180deg, #ffffff 0%, #eef0f4 100%);
   border: 1px solid rgba(20, 22, 30, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(20, 22, 30, 0.18);
-  font-family: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+  font-family: inherit;
   color: var(--ink); overflow: hidden;
 }
 .scr-l { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -122,7 +137,7 @@ select option { background: #1b1b1b; color: #f4f4f4; }
   gap: var(--s5); min-height: 0; align-items: center; justify-items: center;
   padding: 0 var(--s2);
 }
-:root { --side: clamp(280px, 25vw, 380px); }
+:root { --side: clamp(280px, 24vw, 460px); }
 
 /* each device FLOATS on the page — no card box; just the hardware + its drop-shadow. */
 .device {
@@ -132,8 +147,9 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 }
 /* the trackpad is the HERO — the biggest part of the app, scales with the window */
 .surface-col { max-width: min(100%, calc(var(--board-h) * 1.4)); }
-/* the knob sits in the left flank, centred (its outboard labels have room on both sides) */
-.dial-col { width: 100%; max-width: 230px; }
+/* the knob sits in the left flank, centred (its outboard labels have room on both sides);
+   grows a little with the window so it doesn't look like a toy next to a big hero pad */
+.dial-col { width: 100%; max-width: clamp(230px, 16vw, 330px); }
 .dial-col .dial { max-width: 84%; margin: 0 auto; }
 .devlabel { display: inline-flex; align-items: center; gap: 5px;
   font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-2); text-align: center;
@@ -241,6 +257,10 @@ select option { background: #1b1b1b; color: #f4f4f4; }
 .overlay .gstring { position: absolute; left: 0; right: 0; transform: translateY(-50%); border-radius: 2px;
   background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.42), rgba(255,255,255,0.12));
   box-shadow: 0 0 5px rgba(255,255,255,0.25); }
+/* a plucked/held string lights up (pressed = lit, same idea as the piano keys) */
+.overlay .gstring.held {
+  background: linear-gradient(90deg, rgba(120,200,255,0.3), rgba(150,215,255,0.9), rgba(120,200,255,0.3));
+  box-shadow: 0 0 12px rgba(120,200,255,0.7); }
 .overlay .gfret { position: absolute; top: 6%; bottom: 6%; width: 1px; background: rgba(255,255,255,0.09); }
 .overlay .gfret:nth-child(odd) { background: rgba(255,255,255,0.05); }
 .overlay .kcol { position: absolute; top: 0; bottom: 0; border-left: 1px solid rgba(255,255,255,0.06); }
@@ -334,32 +354,45 @@ body.started .hint { opacity: 0; }
 .pedal-img { width: 100%; height: auto; display: block; -webkit-user-drag: none; filter: drop-shadow(0 22px 34px rgba(24,28,48,0.30)) drop-shadow(0 4px 8px rgba(24,28,48,0.16)); }
 .pwhite { position: absolute; inset: 0; width: 100%; height: auto; display: block; opacity: 0; pointer-events: none; filter: drop-shadow(0 0 9px rgba(255,255,255,0.7)); transition: opacity .05s ease; }
 .pwhite.on { opacity: 1; }
-/* labels sit ABOVE each pedal (same treatment as the dial's key labels) — a light chip */
+/* pedal labels: one chip ABOVE each pedal (identical treatment to the dial's .dkey-label chips —
+   the two controllers read as one family). They're buttons: tapping one presses that pedal, so
+   the loop station works with no hardware. */
 .plabel {
-  position: absolute; transform: translate(-50%, -130%);
-  font-size: 9.5px; font-weight: 600; color: var(--ink); letter-spacing: 0.02em;
+  position: absolute; top: 0; transform: translate(-50%, -122%);
+  font-size: 9.5px; font-weight: 600; color: var(--ink); letter-spacing: 0.02em; line-height: 1.2;
   background: var(--bg2); padding: 2px 6px; border-radius: 6px;
-  pointer-events: none; white-space: nowrap; border: 1px solid var(--line); box-shadow: var(--shadow-1);
+  white-space: nowrap; border: 1px solid var(--line); box-shadow: var(--shadow-1);
+  cursor: pointer; transition: background .12s, border-color .12s, color .12s;
 }
+.plabel:hover { background: var(--bg3); border-color: var(--line-2); }
+.plabel:active { background: var(--ink); color: #fff; }
 
 /* ── LOOP CONTROL row: transport · loop tape · foot pedal (grouped: this drives the looper) ── */
 .tape { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3) var(--s4); align-items: center; }
 .transport { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 .loops { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--s2); }
-/* the pedal is the loop foot-controller — small, grouped with the tape, not a hero element */
-.tape .pedal-col { width: 132px; gap: 2px; }
+/* the pedal is the loop foot-controller — small, grouped with the tape, not a hero element
+   (wide enough that its three label chips — ● Rec · ▶ Play · ⟲ Undo — never collide, with
+   headroom reserved for the chips floating above each pedal) */
+.tape .pedal-col { width: 170px; gap: 2px; padding-top: 18px; }
 .tape .pedal-col .devlabel { font-size: 8px; padding: 1px 5px; }
 
 /* ── config: the instrument-specific panel — to the RIGHT of the trackpad ── */
-.config { min-width: 0; min-height: 0; overflow-y: auto; }
+/* max-height pins it inside the workspace row: a tall panel (the Drums step grid) scrolls
+   instead of spilling over the loop tape below. */
+.config { min-width: 0; min-height: 0; max-height: 100%; overflow-y: auto; }
 .panel { min-width: 0; height: 100%; }
 
+/* control sizing scale (one system, not per-widget guesses):
+   34px = top-bar buttons · 40px = transport (primary) · 30px = panel buttons · 28px = tabs */
 .tbtn {
-  display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex; align-items: center; gap: 7px; height: 40px;
   border: 1px solid var(--line); background: var(--bg2); color: var(--ink);
-  border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border-radius: 10px; padding: 0 14px; font-size: 13px; font-weight: 600; cursor: pointer;
   transition: border-color .14s, background .14s;
 }
+.tbtn .rec-next { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+.tbtn.rec.on .rec-next { color: #ff7a70; }
 .tbtn:hover { border-color: var(--line-2); background: var(--bg3); }
 .tbtn.on { background: var(--ink); color: #ffffff; border-color: var(--ink); }
 .tbtn.rec.on { background: rgba(255,69,58,0.16); color: #ff7a70; border-color: var(--rec); }
@@ -390,6 +423,15 @@ body.started .hint { opacity: 0; }
 .loop-state { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .loop-spd { position: absolute; right: 8px; bottom: 7px; font-size: 9.5px; font-weight: 700; color: var(--muted-2); font-variant-numeric: tabular-nums; }
 .loop.empty .loop-num { color: var(--muted-2); }
+/* an empty slot advertises its action ("● record") and warms up red on hover */
+.loop.empty .loop-state { color: var(--muted-2); }
+.loop.empty:hover .loop-state { color: var(--rec); }
+/* whose layer is this? Slots recorded with the ACTIVE instrument read at full strength; other
+   instruments' layers sit back a step (hover restores them — they're still one tap to mute/play). */
+.loop.mine { border-color: color-mix(in srgb, var(--lc) 55%, var(--line)); }
+.loop.mine .loop-inst { font-weight: 800; }
+.loop.other { opacity: 0.6; }
+.loop.other:hover { opacity: 1; }
 .loop.playing { border-color: var(--lc); background: color-mix(in srgb, var(--lc) 16%, var(--bg2)); }
 .loop.playing .loop-state { color: color-mix(in srgb, var(--lc) 70%, var(--ink)); }
 .loop.playing .loop-spd { color: color-mix(in srgb, var(--lc) 70%, var(--ink)); }
@@ -403,12 +445,21 @@ body.started .hint { opacity: 0; }
 
 /* context panel (SOUND / DRUMS / MIX) */
 .panel-tabs { display: flex; gap: var(--s1); margin-bottom: var(--s2); }
-.ptab { border: 1px solid var(--line); background: var(--bg1); color: var(--muted); border-radius: 999px; padding: 5px 14px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: color .14s, border-color .14s; }
+.ptab { display: inline-flex; align-items: center; height: 28px; border: 1px solid var(--line); background: var(--bg1); color: var(--muted); border-radius: 999px; padding: 0 14px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: color .14s, border-color .14s; }
 .ptab:hover { color: var(--ink); border-color: var(--line-2); }
 .ptab.on { color: var(--ink); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .ptab.gone { display: none; }   /* Drums/Sample tabs hide unless that instrument is active */
 .panel-body { border: 1px solid var(--line); background: var(--bg1); border-radius: 14px; padding: var(--s3) var(--s4); min-height: 64px; }
 .panel-body.hidden, .panel.collapsed .panel-body { display: none; }
+/* one-line explainer inside a panel page (e.g. how the drum grid becomes part of the song) */
+.panel-hint { margin: var(--s2) 0; font-size: 11px; line-height: 1.55; color: var(--muted); }
+.panel-hint b { color: var(--ink); font-weight: 700; }
+/* section headers inside a panel page (Kit · Groove · Pads · Steps) */
+.psec { margin: var(--s3) 0 var(--s1); }
+.panel-body .psec:first-child { margin-top: 0; }
+/* the page's final action: bake the beat, with its explainer beside it */
+.bake-row { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s3); }
+.bake-row .panel-hint { margin: 0; flex: 1; min-width: 180px; }
 
 .ctl-row { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s5); align-items: center; }
 .ctl { display: flex; flex-direction: column; gap: 5px; }
@@ -439,8 +490,9 @@ body.started .hint { opacity: 0; }
 /* ── settings sheet ──────────────────────────────────────────────────────── */
 .sheet { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; background: rgba(8,8,9,0.6); backdrop-filter: blur(4px); }
 .sheet.open { display: flex; }
-.sheet-card { width: min(560px, 92vw); max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--bg1), #1a1a1b); border: 1px solid var(--line-2); border-radius: 18px; box-shadow: var(--shadow-2); }
-.sheet-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 10px; background: linear-gradient(180deg, var(--bg1), rgba(26,26,27,0.92)); }
+/* (light chassis — the old dark-theme gradient left the sheet's lower half near-black with dark ink) */
+.sheet-card { width: min(560px, 92vw); max-height: 88vh; overflow-y: auto; background: var(--bg1); border: 1px solid var(--line-2); border-radius: 18px; box-shadow: var(--shadow-2); }
+.sheet-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 10px; background: var(--bg1); border-bottom: 1px solid var(--line); }
 .sheet-title { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
 .sheet-body { padding: 4px 18px 20px; display: flex; flex-direction: column; gap: var(--s4); }
 .sgroup { display: flex; flex-direction: column; gap: var(--s2); }
@@ -454,13 +506,17 @@ body.started .hint { opacity: 0; }
 .dev-status { display: flex; align-items: center; gap: 5px; padding: 0 2px; }
 .sdot.mini { width: 9px; height: 9px; }
 .sstatus { font-size: 11px; color: var(--muted); }
-.sbtn { border: 1px solid var(--line-2); background: var(--bg3); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.sbtn { display: inline-flex; align-items: center; gap: 5px; height: 30px; border: 1px solid var(--line-2); background: var(--bg3); color: var(--ink); border-radius: 8px; padding: 0 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .sbtn:hover { background: var(--bg1); }
 .sbtn.danger { border-color: rgba(255,69,58,0.5); color: #ff8a80; }
+/* the one action a page really wants you to see (Beat → Loop) */
+.sbtn.primary { border-color: var(--accent); color: color-mix(in srgb, var(--accent) 80%, var(--ink)); background: color-mix(in srgb, var(--accent) 10%, var(--bg3)); font-weight: 700; }
+.sbtn.primary:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg3)); }
 
 /* ── grid / multi view — every instrument playing at once ────────────────── */
-/* leaves the top settings bar uncovered, so you can record/switch/save while watching the grid */
-.grid-view { position: fixed; top: 60px; left: 0; right: 0; bottom: 0; z-index: 70; display: none; flex-direction: column; gap: var(--s4); background: radial-gradient(900px 600px at 50% -10%, var(--bg3), var(--bg0) 70%); padding: var(--s3) var(--s5) var(--s5); }
+/* leaves the top settings bar uncovered, so you can record/switch/save while watching the grid
+   (gridview.ts measures the real topbar bottom on open — this is only the fallback) */
+.grid-view { position: fixed; top: 64px; left: 0; right: 0; bottom: 0; z-index: 70; display: none; flex-direction: column; gap: var(--s4); background: radial-gradient(900px 600px at 50% -10%, var(--bg3), var(--bg0) 70%); padding: var(--s3) var(--s5) var(--s5); }
 .grid-view.open { display: flex; }
 
 /* header — back · title block · live beat · hint */
@@ -555,9 +611,8 @@ body.started .hint { opacity: 0; }
 }
 @media (max-width: 560px) {
   .loops { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  /* let the top bar wrap instead of forcing the whole app wider than the phone screen — its
-     min-widths (brand 230 + screen 220 + tools) used to overflow, pushing content off-centre. */
-  .topbar { flex-wrap: wrap; row-gap: var(--s2); }
+  /* the top bar already wraps (base rule) — on a phone also drop the min-widths so the brand
+     and screen never force the app wider than the display. */
   .brand { min-width: 0; }
   .screen { min-width: 0; flex: 1 1 160px; }
   .top-tools { flex-wrap: wrap; justify-content: flex-end; }

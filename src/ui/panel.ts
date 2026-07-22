@@ -63,9 +63,12 @@ export function initPanel(
   root.append(tabsEl);
   // DRUMS + SAMPLE are per-instrument config, so their tabs only appear when that instrument is
   // active — otherwise "Drums"/"Sample" doubled the instrument names and showed in two places.
+  // SOUND is the melodic voice's page — on Drums/Sample it edited a synth you couldn't hear, so
+  // it hides there too (no redundant tabs; Drums shows just Drums + Mix).
   const showContextTabs = (id: InstrumentId): void => {
     tabBtns["Drums"].classList.toggle("gone", id !== "drums");
     tabBtns["Sample"].classList.toggle("gone", id !== "sampler");
+    tabBtns["Sound"].classList.toggle("gone", id === "drums" || id === "sampler");
   };
   showContextTabs("synth" as InstrumentId);   // default: melodic — hide Drums/Sample until they're active
 
@@ -162,42 +165,62 @@ export function initPanel(
   pCheck(sr3, "Chord", "chord");
   pCheck(sr3, "Glide", "glide");
 
-  // ── DRUMS (kit picker + pads + step grid) ──
+  // ── DRUMS — the beat designer, in workflow order: KIT (what it sounds like + how the pad is
+  //    carved up) → GROOVE (live-recording aids) → PADS → STEPS → BAKE it into a loop. ──
   const drums = body("Drums");
+  const dhead = (label: string): void => {
+    const h = document.createElement("div"); h.className = "t-label psec"; h.textContent = label; drums.append(h);
+  };
+
+  dhead("Kit");
   const kitRow = document.createElement("div"); kitRow.className = "ctl-row"; drums.append(kitRow);
   const kitWrap = document.createElement("label"); kitWrap.className = "ctl";
-  const kitSpan = document.createElement("span"); kitSpan.textContent = "Kit";
+  const kitSpan = document.createElement("span"); kitSpan.textContent = "Sounds";
   const kitSel = document.createElement("select");
   KITS.forEach((k, i) => kitSel.append(new Option(k.name, String(i))));
   kitSel.onchange = () => { o.kit.setAssignment(KITS[Number(kitSel.value)].pads.slice()); refreshDrums(); o.onChange(); };
   kitWrap.append(kitSpan, kitSel); kitRow.append(kitWrap);
-
-  // whole-surface pad grid: 1×1 up to 4×3 (corner to corner)
-  sel(kitRow, "Pads ⇄", ["1", "2", "3", "4"], () => o.drumInst.gridCols - 1, (n) => { o.drumInst.setGrid(n + 1, o.drumInst.gridRows); o.onOverlay(); refreshDrums(); });
-  sel(kitRow, "Pads ⇅", ["1", "2", "3"], () => o.drumInst.gridRows - 1, (n) => { o.drumInst.setGrid(o.drumInst.gridCols, n + 1); o.onOverlay(); refreshDrums(); });
+  // ONE pad-grid picker (was two cryptic "Pads ⇄ / ⇅" selects): how the surface is carved up
+  const GRIDS: Array<[number, number]> = [[1, 1], [2, 2], [3, 2], [4, 2], [4, 3]];
+  sel(kitRow, "Pad grid", GRIDS.map(([c, r]) => `${c} × ${r}`),
+    () => Math.max(0, GRIDS.findIndex(([c, r]) => c === o.drumInst.gridCols && r === o.drumInst.gridRows)),
+    (n) => { const [c, r] = GRIDS[n]; o.drumInst.setGrid(c, r); o.onOverlay(); refreshDrums(); });
   // how many steps the beat loops over (4 / 8 / 16)
   const STEP_OPTS = [4, 8, 16];
   sel(kitRow, "Steps", ["4", "8", "16"], () => Math.max(0, STEP_OPTS.indexOf(o.seq.length)), (n) => { o.seq.length = STEP_OPTS[n]; o.onChange(); });
+
+  dhead("Groove");
+  const grooveRow = document.createElement("div"); grooveRow.className = "ctl-row"; drums.append(grooveRow);
   // BUILD: while running, finger-drumming quantizes onto the beat (builds the groove as you play)
   const buildChk = document.createElement("input");
   buildChk.type = "checkbox";
   buildChk.onchange = () => { o.seq.recording = buildChk.checked; };
   refreshers.push(() => { buildChk.checked = o.seq.recording; });
-  ctl(kitRow, "Build", buildChk, true);
+  ctl(grooveRow, "Build", buildChk, true);
   // metronome — a click on the quarter notes so you can finger-drum / record in time
   const clickChk = document.createElement("input");
   clickChk.type = "checkbox";
   clickChk.onchange = () => { o.seq.metronome = clickChk.checked; };
   refreshers.push(() => { clickChk.checked = o.seq.metronome; });
-  ctl(kitRow, "Click", clickChk, true);
-  // BEAT → LOOP: bake the current step pattern into a loop slot so you can mute/stack/clone it
-  // like any other layer (the beat becomes one of the colored loops).
-  const capBtn = document.createElement("button");
-  capBtn.className = "sbtn"; capBtn.textContent = "Beat → Loop";
-  capBtn.title = "Bake the step pattern into a loop slot (stack it like any layer)";
-  capBtn.onclick = () => o.onCaptureBeat();
-  kitRow.append(capBtn);
+  ctl(grooveRow, "Click", clickChk, true);
+  // wipe the pattern (there was no way to start over short of toggling 128 cells)
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "sbtn"; clearBtn.textContent = "Clear beat";
+  clearBtn.title = "Wipe every step (the kit and pads stay)";
+  clearBtn.onclick = () => { o.seq.clear(); o.onChange(); };
+  grooveRow.append(clearBtn);
 
+  // BEAT → LOOP: built here, appended at the END of the page (design first, bake last)
+  const capBtn = document.createElement("button");
+  capBtn.className = "sbtn primary";
+  capBtn.innerHTML = `Beat → Loop <kbd class="tkey">⇧\`</kbd>`;
+  capBtn.title = "Bake the step pattern into a loop slot (stack it like any layer) — Shift+`";
+  capBtn.onclick = () => o.onCaptureBeat();
+  const drumHint = document.createElement("span");
+  drumHint.className = "panel-hint";
+  drumHint.innerHTML = "The grid only sounds while <b>Drums</b> is open — bake it into a loop and it plays under every instrument.";
+
+  dhead("Pads — tap to hear · right-click to swap its sound");
   const padsEl = document.createElement("div"); padsEl.className = "pads"; drums.append(padsEl);
   const padEls: HTMLButtonElement[] = [];
   for (let i = 0; i < o.seq.tracks; i++) {
@@ -216,6 +239,7 @@ export function initPanel(
     padEls.push(p);
     padsEl.append(p);
   }
+  dhead("Steps");
   const seqEl = document.createElement("div"); seqEl.className = "seq"; drums.append(seqEl);
   const cells: HTMLDivElement[][] = [];
   const rowLabs: HTMLElement[] = [];
@@ -238,6 +262,10 @@ export function initPanel(
     }
     seqEl.append(rowEl);
   }
+  // the workflow's last step, pinned at the bottom: bake the finished beat into a loop layer
+  const bakeRow = document.createElement("div"); bakeRow.className = "bake-row"; drums.append(bakeRow);
+  bakeRow.append(capBtn, drumHint);
+
   const flashPad = (i: number) => { padEls[i].classList.add("flash"); setTimeout(() => padEls[i].classList.remove("flash"), 110); };
   const refreshDrums = () => {
     padEls.forEach((p, i) => (p.innerHTML = `<span class="pn">${esc(o.kit.soundOf(i).name)}</span>`));
@@ -303,7 +331,7 @@ export function initPanel(
   const mix = body("Mix");
   const mr = document.createElement("div"); mr.className = "ctl-row"; mix.append(mr);
   range(mr, "Volume", () => params.masterVolume, (v) => { params.masterVolume = v; o.engine.applyParams(); });
-  range(mr, "Brightness", () => params.brightness, (v) => o.engine.setBrightness(v));
+  // (no Brightness here — it lives on the SOUND page as "Bright"; having it twice was confusing)
   range(mr, "Reverb", () => params.reverb, (v) => { params.reverb = v; o.engine.applyParams(); });
   range(mr, "Delay", () => params.delay, (v) => { params.delay = v; o.engine.applyParams(); });
 

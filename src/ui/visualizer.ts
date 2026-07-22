@@ -27,6 +27,8 @@ export class Visualizer {
   /** "Find chords" mode — draw a guide from each finger to the nearest in-scale triad. */
   chordFind: () => boolean = () => false;
   melodicActive: () => boolean = () => false;
+  /** how many pitch zones the ACTIVE instrument spreads across X (its ruler/guide columns). */
+  pitchSpan: () => number = () => params.spread;
   /** an instrument can draw its own overlay on the surface (e.g. the Tombola arena + balls). */
   overlayPaint: ((ctx: CanvasRenderingContext2D, w: number, h: number) => void) | null = null;
 
@@ -146,18 +148,19 @@ export class Visualizer {
   private drawGuides(ctx: CanvasRenderingContext2D, w: number, h: number): void {
     const scale = SCALES[params.scaleIndex];
     const base = 48 + params.octave * 12 + params.root;
+    const span = Math.max(1, this.pitchSpan());   // the instrument's REAL zones, so labels sit on the notes you get
     ctx.textAlign = "center";
     ctx.font = "10px Inter, system-ui, sans-serif";
-    for (let d = 0; d < params.spread; d++) {
-      const x0 = (d / params.spread) * w;
-      const cx = ((d + 0.5) / params.spread) * w;
+    for (let d = 0; d < span; d++) {
+      const x0 = (d / span) * w;
+      const cx = ((d + 0.5) / span) * w;
       const midi = degreeToMidi(scale, base, d);
       const pc = ((midi % 12) + 12) % 12;
       const isRoot = pc === params.root;
 
       if (isRoot) {
         ctx.fillStyle = "rgba(255,255,255,0.06)";
-        ctx.fillRect(x0, 0, w / params.spread, h);
+        ctx.fillRect(x0, 0, w / span, h);
       }
       ctx.fillStyle = "rgba(255,255,255,0.045)";
       ctx.fillRect(x0, 0, 1, h);
@@ -169,7 +172,7 @@ export class Visualizer {
   /** For each live finger, snap to the nearest scale degree and draw the triad it implies
    *  (root + third + fifth) with a dashed line from the finger to the chord root. */
   private drawChordGuide(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-    const spread = Math.max(1, params.spread);
+    const spread = Math.max(1, this.pitchSpan());
     const midY = h * 0.5;
     // persistent: a small badge + faint chord-root dots so you can SEE the mode is on, untouched
     ctx.save();
@@ -184,7 +187,7 @@ export class Visualizer {
     ctx.restore();
     for (const c of this.contacts.values()) {
       if (/^lp\d+_/.test(c.id)) continue;             // live fingers only
-      const root = Math.max(0, Math.min(spread - 1, Math.round(c.x * (spread - 1))));
+      const root = Math.max(0, Math.min(spread - 1, Math.floor(c.x * spread)));   // same quantizer the instruments use
       const fx = c.x * w, fy = c.y * h;
       const rootX = ((root + 0.5) / spread) * w;
       ctx.save();

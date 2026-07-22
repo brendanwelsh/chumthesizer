@@ -1,5 +1,6 @@
 import anime from "animejs";
 import type { Contact } from "../types";
+import type { Overlay } from "../instruments/instrument";
 import { loopRgb } from "./loop-colors";
 import { initShark, type SharkHandle } from "./shark";
 
@@ -45,6 +46,7 @@ export function initGridView(
     instruments: { id: string; name: string }[];
     beatStep: () => number;                     // seq.visualStep(): -1 stopped, else 0..15
     loops: () => LoopInfo[];                    // every loop slot's instrument + whether it's sounding
+    overlayOf: (inst: string) => Overlay;       // the instrument's REAL surface guide (mirrors the hero board)
   },
 ): GridView {
   root.innerHTML = "";
@@ -176,6 +178,16 @@ export function initGridView(
         delay: anime.stagger(34, { grid: [cols, rows()], from: "center" }),
         complete: () => { entering = false; },
       }, "-=200");
+    // rAF can be throttled or suspended (occluded / just-restored window) — if the entrance
+    // hasn't COMPLETED by well past its full runtime, cancel it and show the board plainly,
+    // so the whole grid can never sit stuck (or start late) at its invisible first keyframe.
+    window.setTimeout(() => {
+      if (!open || !entering) return;   // closed, or the entrance finished normally
+      entering = false;
+      anime.remove([head, ...cellEls]);
+      head.style.opacity = "";
+      for (const el of cellEls) { el.style.opacity = ""; el.style.transform = ""; }
+    }, 1600);
   };
 
   // ── motion: one swell on every beat — a ripple out from the centre, bigger on the downbeat ──
@@ -196,6 +208,13 @@ export function initGridView(
     open = v;
     root.classList.toggle("open", v);
     if (v) {
+      // start exactly under the (possibly wrapped) top bar — a fixed 60px overlapped it
+      const tb = document.querySelector(".topbar");
+      if (tb && !window.matchMedia("(pointer: coarse)").matches) {
+        root.style.top = `${Math.max(0, Math.ceil(tb.getBoundingClientRect().bottom) + 4)}px`;
+      } else {
+        root.style.top = "";
+      }
       layout();
       requestAnimationFrame(() => {
         fit();
@@ -211,21 +230,61 @@ export function initGridView(
 
   window.addEventListener("resize", () => { if (open) { layout(); fit(); for (const c of cells) c.shark.relayout(); } });
 
-  // ── faint per-instrument surface guide so a cell never looks blank ─────────
+  // ── each cell draws its instrument's REAL surface guide (the same geometry as the hero
+  //    board's overlay — piano keys, strings + frets, the live drum grid, drawbars…), so the
+  //    grid is 15 truthful mini trackpads, not 15 approximations. ──
+  const SHARP_AFTER = new Set([0, 1, 3, 4, 5]);   // classic piano: white keys with a black key to their right
+  const line = (ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number): void => {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  };
   const guide = (ctx: CanvasRenderingContext2D, w: number, h: number, inst: string): void => {
-    ctx.strokeStyle = "rgba(255,255,255,0.10)"; ctx.lineWidth = 1;
-    if (inst === "keys" || inst === "pluck") {
-      for (let i = 1; i < 8; i++) { const x = (i / 8) * w; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-    } else if (inst === "bass" || inst === "guitar") {
-      const n = inst === "bass" ? 4 : 6;
-      for (let i = 0; i < n; i++) { const y = ((i + 0.5) / n) * h; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
-    } else if (inst === "drums") {
-      for (let i = 1; i < 4; i++) { const x = (i / 4) * w; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-      ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+    const o = deps.overlayOf(inst);
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.lineWidth = 1;
+    if (o.kind === "piano") {
+      for (let i = 1; i < o.keys; i++) line(ctx, (i / o.keys) * w, 0, (i / o.keys) * w, h);
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      for (let i = 0; i < o.keys - 1; i++) {
+        if (!SHARP_AFTER.has(i % 7)) continue;
+        const cx = ((i + 1) / o.keys) * w, bw = (0.62 / o.keys) * w;
+        ctx.fillRect(cx - bw / 2, 0, bw, h * 0.62);
+      }
+    } else if (o.kind === "strings") {
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      for (let s = 0; s < o.strings; s++) {
+        ctx.lineWidth = 0.8 + s * 0.35;   // lower strings thicker, like the hero
+        const y = ((s + 0.5) / o.strings) * h;
+        line(ctx, 0, y, w, y);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1;
+      for (let f = 1; f < o.frets; f++) line(ctx, (f / o.frets) * w, h * 0.06, (f / o.frets) * w, h * 0.94);
+    } else if (o.kind === "grid") {
+      for (let c = 1; c < o.cols; c++) line(ctx, (c / o.cols) * w, 0, (c / o.cols) * w, h);
+      for (let r = 1; r < o.rows; r++) line(ctx, 0, (r / o.rows) * h, w, (r / o.rows) * h);
+    } else if (o.kind === "lines") {
+      ctx.lineWidth = Math.max(1, o.weight * 0.75);
+      for (let i = 0; i < o.count; i++) {
+        const p = (i + 0.5) / o.count;
+        if (o.orient === "v") line(ctx, p * w, h * 0.08, p * w, h * 0.92);
+        else line(ctx, w * 0.06, p * h, w * 0.94, p * h);
+      }
+    } else if (o.kind === "ribbon" || o.kind === "wave") {
+      line(ctx, 0, h / 2, w, h / 2);
+      if (o.kind === "ribbon") for (let i = 1; i < 8; i++) line(ctx, (i / 8) * w, h * 0.42, (i / 8) * w, h * 0.58);
+    } else if (o.kind === "lattice") {
+      ctx.strokeStyle = "rgba(255,255,255,0.07)";
+      for (let i = 1; i < 6; i++) line(ctx, (i / 6) * w, 0, (i / 6) * w, h);
+      for (let i = 1; i < 4; i++) line(ctx, 0, (i / 4) * h, w, (i / 4) * h);
+    } else if (o.kind === "valves") {
+      for (let i = 0; i < 3; i++) {
+        const cx = ((32 + i * 18) / 100) * w, r = 0.065 * w;
+        ctx.beginPath(); ctx.ellipse(cx, h / 2, r, r, 0, 0, Math.PI * 2); ctx.stroke();
+      }
     } else if (inst === "tombola") {
+      // tombola paints itself on the hero; here its arena outline stands in
       ctx.beginPath(); ctx.ellipse(w / 2, h / 2, w * 0.4, h * 0.4, 0, 0, Math.PI * 2); ctx.stroke();
     } else {
-      ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();   // synth/pad/sample: a ribbon line
+      line(ctx, 0, h / 2, w, h / 2);
     }
   };
 

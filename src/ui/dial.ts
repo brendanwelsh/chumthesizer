@@ -4,8 +4,8 @@
  *    2. a WHITE silhouette PNG per key — hidden, shown on press so the whole button goes white
  *    3. the knob as its own circular layer that actually rotates (and glows white while turning)
  *    4. invisible hit-areas over each key for click/tap
- *  Knob: drag = FX macro (warp the sound) + spins to match; click = play/stop.
- *  Keys: a press plays a note that records into the armed loop.
+ *  Knob: drag = the current knob macro (warp the sound) + spins to match; click = cycle the macro.
+ *  Keys: a press picks/blends a sound preset (recorded into the armed loop).
  *
  *  Geometry is in % of the cropped base image (see scripts that built public/ulanzi-dial.png).
  *  Relative URLs ("./…") — Electron loads the build over file://. */
@@ -77,7 +77,7 @@ export function initDial(root: HTMLElement, opts: DialOpts): DialWidget {
   knob.src = KNOB_IMG;
   knob.alt = "";
   knob.draggable = false;
-  knob.title = "Knob — drag to warp the sound (FX) · click = play / stop";
+  knob.title = "Knob — drag to warp the sound · click = cycle what the knob controls (Filter → Bright → …)";
   knob.style.left = `${KNOB.cx}%`;
   knob.style.top = `${KNOB.cy}%`;
   knob.style.width = `${KNOB.dia}%`;

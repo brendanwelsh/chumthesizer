@@ -6,9 +6,11 @@ import { loopColor } from "./loop-colors";
  *  per-loop record shortcut. Motion thesis: a recording slot pulses red, a playing slot
  *  fills with a sweeping accent playhead — the chassis is still, the light moves. */
 const SPEED_LABEL: Record<number, string> = { 0.5: "½×", 1: "1×", 2: "2×" };
-const INST_NAMES: Record<string, string> = { synth: "Synth", keys: "Keys", bass: "Bass", guitar: "Guitar", pluck: "Pluck", pad: "Pad", fm: "FM", drums: "Drums", sampler: "Sample", tombola: "Tombola", organ: "Organ", strings: "Strings", arp: "Arp", brass: "Brass" };
+// what a tap DOES from each state — "empty" told you nothing; "● record" tells you the action
+const STATE_LABEL: Record<SlotState, string> = { empty: "● record", recording: "recording…", playing: "playing", muted: "muted" };
+const INST_NAMES: Record<string, string> = { synth: "Synth", keys: "Keys", bass: "Bass", guitar: "Guitar", pluck: "Pluck", pad: "Pad", fm: "FM", drums: "Drums", sampler: "Sample", tombola: "Tombola", organ: "Organ", strings: "Strings", arp: "Arp", brass: "Brass", bells: "Bells" };
 
-export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: number) => string, onPress?: (i: number) => void): void {
+export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: number) => string, onPress?: (i: number) => void, activeInst?: () => string): void {
   root.innerHTML = "";
   const slots: HTMLButtonElement[] = [];
 
@@ -18,9 +20,9 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
     b.style.setProperty("--lc", loopColor(i));
     b.innerHTML =
       `<div class="loop-top"><span class="loop-num">${i + 1}</span><span class="loop-inst"></span><span class="loop-key">${keyHint(i)}</span></div>` +
-      `<span class="loop-state">empty</span>` +
+      `<span class="loop-state">${STATE_LABEL.empty}</span>` +
       `<span class="loop-spd">1×</span>`;
-    b.title = `Loop ${i + 1} — tap to record / play / mute and jump to its instrument. Speed badge = ½×/2×. Long-press (or right-click) to clear.`;
+    b.title = `Loop ${i + 1} — tap to record / play / mute. Speed badge = ½×/2×. Long-press (or right-click) to clear.`;
     b.oncontextmenu = (e) => { e.preventDefault(); looper.clear(i); };
 
     // TAP cycles the slot; LONG-PRESS clears it (the finger-friendly equivalent of right-click, so a
@@ -53,7 +55,7 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
   const paint = (i: number, s: SlotState): void => {
     const b = slots[i];
     b.className = "loop " + s;
-    (b.querySelector(".loop-state") as HTMLElement).textContent = s;
+    (b.querySelector(".loop-state") as HTMLElement).textContent = STATE_LABEL[s];
     (b.querySelector(".loop-spd") as HTMLElement).textContent = SPEED_LABEL[looper.speedOf(i)] ?? `${looper.speedOf(i)}×`;
     const inst = looper.instOf(i);
     (b.querySelector(".loop-inst") as HTMLElement).textContent = inst ? INST_NAMES[inst] ?? inst : "";
@@ -61,11 +63,17 @@ export function initLoopDeck(root: HTMLElement, looper: Looper, keyHint: (i: num
   looper.onSlotChange(paint);
 
   const tick = (): void => {
+    const act = activeInst?.() ?? "";
     for (let i = 0; i < slots.length; i++) {
       const b = slots[i];
       if (b.classList.contains("playing") || b.classList.contains("recording")) {
         b.style.setProperty("--ph", String(looper.slotPhaseNorm(i)));
       }
+      // whose layer is this? The ACTIVE instrument's loops stand out; other instruments' loops
+      // sit back (still tappable — the tape is a mixer, not navigation).
+      const inst = looper.instOf(i);
+      b.classList.toggle("mine", !!inst && inst === act);
+      b.classList.toggle("other", !!inst && inst !== act);
     }
     requestAnimationFrame(tick);
   };

@@ -35,7 +35,7 @@ export function initScreen(root: HTMLElement, get: () => ScreenModel): void {
     if (key !== last) {
       last = key;
       mainEl.textContent = m.instrument.toUpperCase();
-      subEl.textContent = `${m.root} ${m.scale} · ${perfTxt}`;
+      subEl.textContent = `${[m.root, m.scale].filter(Boolean).join(" ")} · ${perfTxt}`;
       bpmEl.textContent = `${Math.round(m.bpm)}`;
       dotsEl.innerHTML = m.loops
         .map((s, i) => `<span class="scr-dot ${s === "playing" ? "play" : s === "recording" ? "rec" : s === "muted" ? "mute" : ""}" style="--lc:${loopColor(i)}"></span>`)

@@ -106,7 +106,7 @@ const instSounds: Partial<Record<InstrumentId, Record<string, unknown>>> = {};
 let prevMelodic: InstrumentId = "synth";
 
 // ── looper: replay routes back through the rack; each layer keeps its sound ──
-const VOICE_KEYS = ["morph", "subLevel", "brightness", "attack", "release", "filterEnv", "filterDecay", "glide", "chord", "octave", "detune", "interval", "subOctave", "subWave", "fm", "fmRatio", "noise", "vibratoDepth", "resonance"] as const;
+const VOICE_KEYS = ["morph", "subLevel", "brightness", "attack", "release", "filterEnv", "filterDecay", "glide", "chord", "octave", "detune", "interval", "subOctave", "subWave", "fm", "fmRatio", "noise", "vibratoDepth", "resonance", "presetName"] as const;   // presetName too, so the LCD/browser show the right sound after an instrument swap
 const soundIO = {
   get: (): Record<string, unknown> => Object.fromEntries(VOICE_KEYS.map((k) => [k, params[k]] as [string, unknown])),
   set: (s: Record<string, unknown>) => Object.assign(params, s),
@@ -247,14 +247,19 @@ if (playBtn) playBtn.onclick = () => setPlayMode(!trackpadPlay);
 
 // ── deck: transport + loop tape + context panel ─────────────────────────────
 const panel = initPanel($("panel"), { engine, seq, kit, drumInst, sampler, looper, sounds: Object.keys(SOUNDS), onPickSound: (name: string) => pickSound(name), onChange: () => { engine.applyParams(); engine.setBrightness(params.brightness); engine.updateLiveTimbre(); syncChordBtn?.(); saveState(); }, onOverlay: () => overlay.set(rack.overlay()), onCaptureBeat: () => captureBeat() });
-// press a loop: cycle it (record → play → mute) AND jump to ITS instrument + target it for sound edits,
-// so building the song is loop-by-loop — loop 2 = drums, loop 3 = keys, click to hop between them.
+// press a loop: cycle it (record → play → mute) and point the sound editor at it. It does NOT
+// switch the active instrument — a slot press is a mixer move (play/mute this layer), and the old
+// auto-jump made pressing loops feel like it "activated" random instrument pages. The tape still
+// shows whose layer each slot is: the active instrument's loops are highlighted (see loopdeck).
 const loopPress = (i: number): void => {
+  // arming an EMPTY slot starts a recording — make sure the tape is actually rolling first.
+  // (After Stop the looper is paused; recording against a frozen clock stamped every event at
+  // the same time and never auto-stopped — a mangled loop.)
+  if (looper.stateOf(i) === "empty") { void engine.resume(); if (!running) setRunning(true); }
   looper.toggle(i);
-  const inst = looper.instOf(i);
-  if (inst) { rack.setActive(inst as InstrumentId); panel.setEditTarget(i); }
+  if (looper.hasContent(i)) panel.setEditTarget(i);
 };
-initLoopDeck($("loops"), looper, (i) => String(i + 1), loopPress);
+initLoopDeck($("loops"), looper, (i) => String(i + 1), loopPress, () => rack.active);
 
 let running = false;
 const setRunning = (b: boolean): void => {
@@ -351,11 +356,15 @@ placeConfig();
 coarseMq.addEventListener("change", placeConfig);
 
 // ── reactive screen ─────────────────────────────────────────────────────────
+// the sub-line tells the truth per instrument: scale/key for pitched voices, what-to-do-next
+// for Drums and Sample (where "C Major Pentatonic" meant nothing).
 let perf = 0;
 initScreen($("screen"), () => ({
   instrument: rack.current().name,
-  scale: SCALES[params.scaleIndex].name,
-  root: NOTE_NAMES[params.root],
+  scale: rack.active === "drums" ? "beat grid — Beat → Loop puts it in the song"
+    : rack.active === "sampler" ? (sampler.hasSample() ? "your clip, pitched across the pad" : "record or load a clip to play")
+    : SCALES[params.scaleIndex].name,
+  root: rack.active === "drums" || rack.active === "sampler" ? "" : NOTE_NAMES[params.root],
   bpm: seq.bpm,
   loops: Array.from({ length: looper.count }, (_, i) => looper.stateOf(i)),
   perf,
@@ -384,6 +393,8 @@ rack.onActiveChange((id) => {
   // a swap can't be released by the new instrument (its voice lived in the old one) → stuck note.
   rack.get(activeBefore)?.panic();
   sampler.releaseAll();
+  // a mic recording only makes sense while you're ON Sample — swapping away ends it cleanly
+  if (id !== "sampler" && sampler.isRecording) { sampler.stop(); instSwitch.setRecording(false); }
   for (const k of [...contacts.keys()]) if (!/^lp\d+_/.test(k)) contacts.delete(k);  // drop live fingerprints (keep loop ones)
   latched.clear();   // the old instrument's voices were just panicked; forget what latch held there
   activeBefore = id;
@@ -590,8 +601,9 @@ const dialBridge = initDialBridge(
 );
 
 // ── pedal: hands-free loop control ──────────────────────────────────────────
-const pedalView = initPedalView($("pedal"));
-pedalView.setLabels(["Rec", "Play", "Undo"]);
+// the on-screen pedal is tappable too (its label chips), so the loop station works with no hardware
+const pedalView = initPedalView($("pedal"), { onPress: (i) => pedalDown(i) });
+pedalView.setLabels(["● Rec", "▶ Play", "⟲ Undo"]);
 // A simple, reliable loop-station — every switch fires on a clean TAP (no hold/tape-stop ambiguity,
 // which was breaking play/stop). Foot flow like a Boss-style looper: tap REC to lay a layer, tap
 // again to stop; REC auto-advances to the NEXT empty loop each time, so it's your "next" button.
@@ -650,6 +662,7 @@ const gridView = initGridView($("gridview"), {
     const s = looper.stateOf(i);
     return { loop: i, inst: looper.instOf(i), active: s === "playing" || s === "recording" };
   }),
+  overlayOf: (id) => rack.get(id as InstrumentId)?.overlay() ?? { kind: "none" },   // each cell mirrors its REAL surface guide
 });
 const gridBtn = document.getElementById("grid-btn");
 if (gridBtn) gridBtn.onclick = () => gridView.toggle();
@@ -672,6 +685,9 @@ const loadProject = (file: File): void => {
       if (Array.isArray(s.drums)) kit.setAssignment(s.drums);
       if (Array.isArray(s.loops)) looper.load(s.loops);
       if (typeof s.instrument === "string") rack.setActive(s.instrument as InstrumentId);
+      // a song with loops starts PLAYING on load — otherwise the loops replayed against a stopped
+      // transport (audible, but the UI said stopped). Loading a song = press play on it.
+      if (looper.anyContent() && !running) setRunning(true);
       engine.applyParams(); engine.setBrightness(params.brightness); panel.refresh(); saveState();
     } catch { /* ignore a bad file */ }
   });
@@ -710,7 +726,9 @@ const setLatch = (on: boolean): void => {
 };
 if (latchBtn) latchBtn.onclick = () => setLatch(!latch);
 viz.chordFind = () => chordFindOn;
-viz.melodicActive = () => MELODIC.includes(rack.active);
+// the pitch ruler only shows where it's truthful (strings map pitch to string+fret, not X)
+viz.melodicActive = () => MELODIC.includes(rack.active) && rack.current().pitchSpan?.() !== null;
+viz.pitchSpan = () => rack.current().pitchSpan?.() ?? params.spread;   // ruler columns = the instrument's REAL zones
 viz.start();
 // the shark chases your LIVE fingers (visits each one); falls back to the cursor when idle
 const shark = initShark({
@@ -788,8 +806,17 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (heldKbd.has(e.code)) return;
     heldKbd.add(e.code);
-    // play at the keyboard's expression level (↑/↓): high = loud/bright (top of the pad), low = soft/dark
-    sink.start({ id: `kbd:${e.code}`, x: deg / MAXDEG, y: 1 - kbdExpr, pressure: 0.18 + kbdExpr * 0.8 });
+    // Q-row plays ONE OCTAVE above the A-row (tracker-style) so both rows land on real, distinct
+    // pitches in the current scale (the old flat 0–19 spread quantized adjacent keys onto the
+    // same note). An octave = one full trip through the scale's steps.
+    const d = deg >= 10 ? deg - 10 + SCALES[params.scaleIndex].steps.length : deg;
+    // ask the instrument where this degree lives on ITS surface (key column / string+fret / drum
+    // cell / slice) — so the keyboard is a real controller for every instrument, not just the ribbon
+    const pos = rack.current().keyPos?.(d);
+    const x = pos ? pos.x : Math.min(1, d / MAXDEG);
+    // melodic surfaces leave Y free for dynamics (↑/↓); strings/drums NEED Y to pick the note/pad
+    const y = pos?.y ?? 1 - kbdExpr;
+    sink.start({ id: `kbd:${e.code}`, x, y, pressure: 0.18 + kbdExpr * 0.8 });
     return;
   }
 
@@ -804,10 +831,16 @@ window.addEventListener("keydown", (e) => {
 
   switch (e.code) {
     case "Space": case "Enter": e.preventDefault(); toggleRun(); break;     // play / stop
-    case "Backquote": e.preventDefault(); armRecord(); break;               // record next loop
+    case "Backquote": e.preventDefault(); if (e.shiftKey) captureBeat(); else armRecord(); break; // ` record next loop · ⇧` bake the beat
     case "Backspace": e.preventDefault(); panic(); releaseHeld(); break;  // panic — all notes off
     case "Delete": e.preventDefault(); { const s = lastNonEmpty(); if (s >= 0) looper.clear(s); } break; // undo last loop (= pedal Undo)
-    case "Tab": e.preventDefault(); rack.cycle(e.shiftKey ? -1 : 1); break; // next/prev instrument
+    case "Tab": {                                                           // next/prev instrument
+      e.preventDefault();
+      const dir = e.shiftKey ? -1 : 1;
+      rack.cycle(dir);
+      if (rack.active === "sampler" && !sampler.hasSample()) rack.cycle(dir); // skip Sample until a clip exists (it'd be silent)
+      break;
+    }
     case "KeyX": dice(); break;                                             // re-roll
     case "KeyZ": applyPerf(perf - 0.1); break;                              // filter sweep down
     case "KeyC": applyPerf(perf + 0.1); break;                              // filter sweep up
@@ -839,6 +872,7 @@ window.addEventListener("keyup", (e) => {
 const syncDeck = (): void => {
   const rec = looper.recordingSlot();
   transport.setRec(rec >= 0);
+  transport.setNext(rec >= 0 ? -1 : firstEmpty());   // show WHERE the next recording lands ("Rec → 3")
   // ring the dial in the colour of the loop currently RECORDING, else the first PLAYING loop
   let colorSlot = rec;
   if (colorSlot < 0) { for (let i = 0; i < looper.count; i++) if (looper.stateOf(i) === "playing") { colorSlot = i; break; } }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, desktopCapturer } = require("electron");
+const { app, BrowserWindow, Menu, screen, desktopCapturer } = require("electron");
 const path = require("node:path");
 const { spawn, execFileSync } = require("node:child_process");
 
@@ -45,9 +45,18 @@ function createWindow() {
     minWidth: 900,
     minHeight: 640,
     center: true,
-    backgroundColor: "#262626",
+    backgroundColor: "#e7e8ee",   // matches the app's light chassis (no dark flash on launch/resize)
     title: "Chumthesizer",
     webPreferences: { sandbox: false },
+  });
+
+  // No app menu: the default File/Edit bar steals F10 (our PLAY↔NAV key) and Alt (menu focus)
+  // from a keyboard-played instrument. DevTools stays reachable on Ctrl+Shift+I below.
+  Menu.setApplicationMenu(null);
+  win.webContents.on("before-input-event", (_ev, input) => {
+    if (input.type === "keyDown" && input.control && input.shift && input.key.toLowerCase() === "i") {
+      win.webContents.toggleDevTools();
+    }
   });
 
   const ses = win.webContents.session;

@@ -27,6 +27,12 @@ export class SamplerInstrument implements Instrument {
     for (const id of this.active) this.sampler.release(id);
     this.active.clear();
   }
+  keyPos(deg: number): { x: number; y?: number } {
+    const n = this.sampler.slices;
+    if (n > 0) { const s = ((deg % n) + n) % n; return { x: (s + 0.5) / n, y: 0.5 }; }   // key n → slice n
+    return { x: (Math.max(0, Math.min(14, deg)) + 0.5) / 15 };                          // pitched across X
+  }
+  pitchSpan(): number | null { return null; }   // sample playback rate, not scale degrees
   overlay(): Overlay {
     const n = this.sampler.slices;
     if (n > 0) return { kind: "grid", cols: n, rows: 1, labels: Array.from({ length: n }, (_, i) => String(i + 1)) };

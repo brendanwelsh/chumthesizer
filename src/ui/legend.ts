@@ -25,16 +25,22 @@ export function initLegend(root: HTMLElement): Legend {
     group("Instruments", [
       ["F1 … F9", "Synth Keys Organ Pad Bells Pluck FM Bass Guitar", "var(--accent)"],
       ["Tab  ⇧Tab", "cycle all 15 (Strings Brass Arp Drums Tombola Sample via Tab)"],
-      ["9", "grid view — all instruments at once"],
-      ["0", "find-chords guide"],
     ]) +
     group("Play", [
-      ["A … ;   Q … P", "play notes — hold several at once for a chord"],
+      ["A … ;", "play notes — hold several at once for a chord"],
+      ["Q … P", "the same notes, one octave up"],
       ["↑   ↓", "louder / softer (keyboard dynamics)"],
       ["pad ↕", "drag up = loud/bright, down = soft/dark"],
       ["[   ]", "octave  −  /  +"],
       [",   .", "scale  −  /  +"],
       ["-   =", "key (root)  −  /  +"],
+    ]) +
+    group("Views & modes", [
+      ["9", "grid view — all instruments at once"],
+      ["0", "find-chords guide"],
+      ["F10", "PLAY ↔ NAV — free the trackpad to click the UI", "var(--warn)"],
+      ["/", "this legend"],
+      ["Esc", "close any overlay"],
     ]) +
     group("Chords (no trackpad needed)", [
       ["hold A … P", "hold several note keys = a chord"],
@@ -42,14 +48,15 @@ export function initLegend(root: HTMLElement): Legend {
       ["LATCH button", "notes sustain — stack a chord with one mouse, toggle off to release"],
     ]) +
     group("Loops", [
-      [loopKeys, "record → play → mute  (+ jump to its instrument)"],
+      [loopKeys, "record → play → mute that loop"],
       ["⇧ 1–8", "clear that loop"],
       ["`", "record the next empty loop", "var(--rec)"],
+      ["⇧ `", "bake the drum-grid beat into a loop", "var(--rec)"],
       ["Del", "clear the last loop"],
       ["'", "clone the focused loop"],
     ]) +
     group("Transport", [
-      ["Space", "play / stop", "var(--accent)"],
+      ["Space  ⏎", "play / stop", "var(--accent)"],
       ["X", "dice — re-roll sound + groove", "var(--warn)"],
       ["Backspace", "panic — all notes off", "var(--rec)"],
     ]) +

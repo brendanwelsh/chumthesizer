@@ -65,22 +65,20 @@ export function initPedalView(root: HTMLElement, opts: PedalOpts = {}): PedalVie
     setTimeout(() => w.classList.remove("on"), FLASH_MS);
   };
 
-  // a label BELOW each pedal (outside it), centered on the pedal
-  const labelEls: HTMLSpanElement[] = PEDALS.map((p) => {
-    const lab = document.createElement("span");
+  // one chip ABOVE each pedal, anchored to it — the same outboard-label treatment as the
+  // dial's keys, so the two controllers read as one family. Chips are buttons: tap = press.
+  const labelEls: HTMLButtonElement[] = PEDALS.map((p, i) => {
+    const lab = document.createElement("button");
+    lab.type = "button";
     lab.className = "plabel";
     lab.style.left = `${p.cx}%`;
-    lab.style.top = `${p.cy}%`;
-    if (opts.onPress) {
-      // make the whole pedal column tappable via the label as a hint; the actual
-      // hit-area is the white sprite below (pointer events), kept simple here.
-      lab.style.cursor = "pointer";
-    }
+    lab.title = "Tap = press this pedal";
+    if (opts.onPress) lab.onclick = () => { opts.onPress?.(i); };
     device.append(lab);
     return lab;
   });
 
-  // optional on-screen tap: clicking a white sprite (or its slot) fires onPress
+  // on-screen taps work on the pedals themselves too
   if (opts.onPress) {
     whites.forEach((w, i) => {
       w.style.pointerEvents = "auto";

@@ -32,6 +32,11 @@ export class TombolaInstrument implements Instrument {
   up(): void { /* nothing held */ }
   panic(): void { this.balls = []; }
   overlay(): Overlay { return { kind: "none" }; }   // it paints itself on the canvas
+  /** computer keyboard: each key drops a ball at its own spot across the arena's top */
+  keyPos(deg: number): { x: number; y: number } {
+    return { x: 0.2 + (Math.max(0, Math.min(14, deg)) / 14) * 0.6, y: 0.3 };
+  }
+  pitchSpan(): number | null { return null; }   // pitch comes from the wall-hit angle, not X
 
   private tick(): void {
     if (!this.isActive) return;

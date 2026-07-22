@@ -80,6 +80,7 @@ export function initOverlay(root: HTMLElement): SurfaceOverlay {
         str.style.top = `${((s + 0.5) / o.strings) * 100}%`;
         str.style.height = `${1 + s * 0.6}px`;   // lower strings thicker
         wrap.append(str);
+        cells.push(str);   // so a held finger lights ITS string (pressed = lit, like the piano keys)
       }
       for (let f = 1; f < o.frets; f++) {
         const fr = document.createElement("div");
@@ -128,6 +129,8 @@ export function initOverlay(root: HTMLElement): SurfaceOverlay {
         const row = Math.max(0, Math.min(current.rows - 1, Math.floor(p.y * current.rows)));
         const el = cells[row * current.cols + col]; if (el) next.push(el);
       }
+    } else if (current.kind === "strings") {
+      for (const p of positions) { const el = cells[Math.max(0, Math.min(current.strings - 1, Math.floor(p.y * current.strings)))]; if (el) next.push(el); }
     }
     for (const el of lit) if (!next.includes(el)) el.classList.remove("held");
     for (const el of next) el.classList.add("held");

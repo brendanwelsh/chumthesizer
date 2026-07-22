@@ -1,6 +1,7 @@
 import type { Engine } from "../audio/engine";
 import type { Instrument, InstrumentId, Overlay } from "./instrument";
 import { NOTE_NAMES } from "../audio/scales";
+import { params } from "../state";
 
 /** A melodic engine instrument played from the trackpad. One class covers the family:
  *   - Synth  : continuous ribbon (X glides), no overlay — the expressive theremin.
@@ -23,8 +24,17 @@ export class MelodicInstrument implements Instrument {
     private weight = 1,           // overlay line weight
   ) {}
 
+  /** How many distinct pitch zones the surface offers. Column-style guides (piano keys,
+   *  drawbar columns) play exactly what they DRAW — so Organ's 9 drawbars are 9 zones, not
+   *  14 invisible ones. Continuous guides follow the engine's spread. */
+  private degreeCount(): number {
+    if (this.guide === "piano" || this.guide === "lines-v") return this.n;
+    return this.struck ? 14 : params.spread;
+  }
+
   private degreeAt(x: number): number {
-    return Math.max(0, Math.min(13, Math.floor(x * 14)));
+    const n = this.degreeCount();
+    return Math.max(0, Math.min(n - 1, Math.floor(x * n)));
   }
 
   // For the "strings" instruments (Guitar = 6, Bass = 4): you actually PLUCK a string. Y picks the
@@ -64,13 +74,27 @@ export class MelodicInstrument implements Instrument {
     for (const id of this.activeIds) this.engine.release(id);
     this.activeIds.clear();
   }
+  keyPos(deg: number): { x: number; y?: number } {
+    if (this.guide === "strings") {
+      // pick the string (Y) + fret (X) that sound this degree — never the expression level
+      const n = this.n;
+      const fromBottom = Math.max(0, Math.min(n - 1, Math.floor(deg / 2)));
+      const fret = Math.max(0, Math.min(this.FRETS - 1, deg - fromBottom * 2));
+      return { x: (fret + 0.5) / this.FRETS, y: (n - 1 - fromBottom + 0.5) / n };
+    }
+    const count = this.degreeCount();
+    return { x: (Math.max(0, Math.min(count - 1, deg)) + 0.5) / count };
+  }
+  pitchSpan(): number | null {
+    return this.guide === "strings" ? null : this.degreeCount();   // frets aren't a left-to-right pitch ruler
+  }
   overlay(): Overlay {
     switch (this.guide) {
       case "piano": {
         const labels = Array.from({ length: this.n }, (_, d) => NOTE_NAMES[((this.engine.noteForDegree(d) % 12) + 12) % 12]);
         return { kind: "piano", keys: this.n, labels };
       }
-      case "strings": return { kind: "strings", strings: this.n, frets: 12 };
+      case "strings": return { kind: "strings", strings: this.n, frets: this.FRETS };   // draw the frets that actually exist
       case "lines-v": return { kind: "lines", orient: "v", count: this.n, weight: this.weight };
       case "lines-h": return { kind: "lines", orient: "h", count: this.n, weight: this.weight };
       case "ribbon": return { kind: "ribbon" };

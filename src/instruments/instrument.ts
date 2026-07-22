@@ -35,4 +35,11 @@ export interface Instrument {
   panic(): void;
   /** the surface guide to render for this instrument */
   overlay(): Overlay;
+  /** Where the nth playable "key" lives on THIS surface, so the computer keyboard lands on
+   *  real, distinct notes (a key column, a string+fret, a drum cell…). Omit `y` when the
+   *  vertical axis is free for dynamics (the caller supplies the expression level). */
+  keyPos?(deg: number): { x: number; y?: number };
+  /** Columns for the on-canvas pitch ruler; null = a ruler makes no sense here (e.g. strings,
+   *  where X is the fret along one string, not the scale). Missing = use the engine's spread. */
+  pitchSpan?(): number | null;
 }

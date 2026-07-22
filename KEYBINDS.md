@@ -15,9 +15,10 @@ Bindings are ignored while typing in a text field/dropdown.
 ## Loops (the tape, 8 tracks)
 | Key | Action |
 | --- | --- |
-| `1`–`8` | Record → play → mute that loop, **and jump to its instrument** |
+| `1`–`8` | Record → play → mute that loop (the tape highlights the **active instrument's** loops; pressing a slot never switches instruments) |
 | `Shift`+`1`–`8` | Clear that loop |
-| `` ` `` (backtick) | Record into the next empty loop |
+| `` ` `` (backtick) | Record into the next empty loop (the transport's **Rec → n** shows where it lands) |
+| `Shift`+`` ` `` | **Beat → Loop** — bake the drum step‑grid into the next empty loop slot |
 | `Delete` | Clear the last recorded loop |
 | `'` (apostrophe) | Clone the focused loop into the next empty slot |
 
@@ -31,11 +32,17 @@ Bindings are ignored while typing in a text field/dropdown.
 ## Play (notes)
 | Key | Action |
 | --- | --- |
-| `A S D F G H J K L ;` + `Q W E R T Y U I O P` | Play scale degrees on the active instrument — **hold several at once for a chord** |
+| `A S D F G H J K L ;` | Play scale degrees 1–10 on the active instrument — **hold several at once for a chord** |
+| `Q W E R T Y U I O P` | The **same notes one octave up** (tracker‑style two‑row keyboard) |
 | `↑` / `↓` | Keyboard dynamics — louder/brighter / softer/darker (the keys' substitute for the pad's vertical axis; the on‑pad tick shows the level) |
 | `[` / `]` | Octave − / + |
 | `,` / `.` | Scale − / + |
 | `-` / `=` | Key (root) − / + |
+
+> **The keyboard plays each instrument's real surface.** Every key asks the active instrument where
+> that note lives: on **Keys/Organ/Pluck** it lands on an exact key column, on **Bass/Guitar** it picks
+> the string *and* fret, on **Drums** `A S D F…` are the pads (finger drumming), on a sliced **Sample**
+> the keys are the slices, and on **Tombola** each key drops a ball at its own spot.
 
 > **Vertical = dynamics.** On the pad, a mouse/touch has no Force‑Touch pressure, so **vertical position is the dynamics axis**: drag toward the top for loud/bright, the bottom for soft/dark (shown as a faint guide for melodic instruments).
 
@@ -78,9 +85,10 @@ A mouse is one pointer, but you can still play more than one note:
   Presses are recorded into the loop and replayed as a coloured flash. Hold `V/B/N/M` to override the
   knob onto those params.
 
-## Drums panel (buttons, no keybind)
-- **Beat → Loop** — bake the current step pattern into the next empty loop slot, so the beat becomes a
-  real loop layer you can mute / clone / stack like any other.
+## Drums panel
+- **Beat → Loop** (`Shift`+`` ` ``) — bake the current step pattern into the next empty loop slot, so the
+  beat becomes a real loop layer you can mute / clone / stack like any other. The step grid itself only
+  sounds while **Drums** is the active instrument (it's the beat *designer*, not a global track).
 - **Stream Deck Pedal** (loop station) — **Rec** = record this layer / stop (auto‑advances to the next
   empty loop, so it doubles as "next") · **Play** = play/stop all · **Undo** = clear the last layer.
   (Tape‑stop moved to the keyboard `\` to keep the pedal's play/stop reliable.)
