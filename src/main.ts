@@ -591,6 +591,10 @@ const dialBridge = initDialBridge(
         if (SOUND_NAMES[slot]) { heldSoundKeys.add(slot); blendHeldSounds(); }
         if (looper.recordingSlot() >= 0) looper.recordKey(slot);   // capture the D100H press into the loop
         dialWidget.hold(slot, true);   // pressed = lit, and stays lit while you hold it
+        // The Ulanzi plugin only ever sends pressed:true (UlanziStudio's onRun is a one-shot tap), so
+        // without this the key stayed "held" forever: every later press BLENDED all earlier sounds and
+        // the on-screen key never went dark. Treat a bridge press as a tap; a real release is harmless.
+        window.setTimeout(() => { heldSoundKeys.delete(slot); dialWidget.hold(slot, false); }, 180);
       } else {
         heldSoundKeys.delete(slot);   // hold-to-blend: release stops blending that key in
         dialWidget.hold(slot, false);
@@ -933,8 +937,16 @@ let ctlSeq = 0;
 };
 
 // ── drop held notes when the window loses focus / hides ─────────────────────
-window.addEventListener("blur", () => { panic(); releaseHeld(); });
-document.addEventListener("visibilitychange", () => { if (document.hidden) { panic(); releaseHeld(); } });
+// a held backslash (tape-stop) never gets its keyup if focus leaves mid-hold — snap the tempo + filter back
+// at once, or the song stays at ~6% tempo (and that crawl gets saved as the session BPM).
+const cancelTapeStop = (): void => {
+  if (!tapeStopping) return;
+  tapeStopping = false;
+  cancelAnimationFrame(tapeRAF);
+  seq.bpm = savedBpm; setPerfVisual(savedPerf); transport.syncTempo(seq.bpm); saveState();
+};
+window.addEventListener("blur", () => { cancelTapeStop(); panic(); releaseHeld(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelTapeStop(); panic(); releaseHeld(); } });
 
 // ── start audio + clear the hint on first interaction ───────────────────────
 const kick = (): void => {
