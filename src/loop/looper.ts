@@ -80,6 +80,7 @@ export class Looper {
   private recStopAt = 0;
   private recPerfBuf: PerfEvent[] = [];   // knob automation captured during this recording
   private recKeyBuf: KeyEvent[] = [];     // dial-key presses captured during this recording
+  private recSpeed = 1;                   // speed of the slot being recorded (overdub onto a ½×/2× layer)
   private keySeq = 0;
 
   private onChange: (i: number, s: SlotState) => void = () => {};
@@ -179,7 +180,12 @@ export class Looper {
     this.recBuf.push({ t: this.recPhase(), kind: "up", key, inst, x: 0, y: 0, p: 0 });
   }
   private recPhase(): number {
-    return this.free ? this.ctx.currentTime - this.recStart : this.masterPhase();
+    if (this.free) return this.ctx.currentTime - this.recStart;
+    // Events are stored in 1× master time and replayed at t / speed. When overdubbing a ½× or 2×
+    // layer you play along with THAT layer's cycle, so stamp the position within its cycle, scaled
+    // back to 1× time — otherwise overdubbed notes land in the wrong place on replay.
+    const period = this.masterLen / this.recSpeed;
+    return (((this.elapsed() % period) + period) % period) * this.recSpeed;
   }
   /** capture a knob/filter value into the loop currently recording (called when you turn the dial). */
   recordPerf(v: number): void {
@@ -344,7 +350,8 @@ export class Looper {
     this.recInst.clear();
     this.recMoveAt.clear();
     this.recStart = this.ctx.currentTime;
-    this.recStopAt = this.ctx.currentTime + this.masterLen; // synced: auto-stop after one loop
+    this.recSpeed = overdub ? this.slots[i].speed : 1;
+    this.recStopAt = this.ctx.currentTime + this.masterLen / this.recSpeed; // synced: auto-stop after one cycle of this layer
     this.slots[i].overdub = overdub;
     this.set(i, "recording");
   }
